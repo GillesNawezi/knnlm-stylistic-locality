@@ -98,9 +98,12 @@ class SequenceScorer(object):
                 if len(models) != 1:
                     raise ValueError('Only knn *log* probs are supported.')
 
+                # print(sample['id'].shape)
+                # print(queries.shape)
                 yhat_knn_prob = dstore.get_knn_log_prob(
                         queries,
                         orig_target.permute(1, 0),
+                        sample_ids=sample['id'],
                         pad_idx=self.pad)
                 yhat_knn_prob = yhat_knn_prob.permute(1, 0, 2).squeeze(-1)
                 if self.args.fp16:

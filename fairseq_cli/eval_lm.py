@@ -157,6 +157,7 @@ def main(parsed_args):
 
         if args.save_knnlm_dstore:
             print('keytype being saved:', args.knn_keytype)
+            dstore_token_sample_map = {}
             if args.dstore_fp16:
                 print('Saving fp16')
                 dstore_keys = np.memmap(args.dstore_mmap+'_keys.npy', dtype=np.float16, mode='w+', shape=(args.dstore_size, args.decoder_embed_dim))
@@ -167,10 +168,22 @@ def main(parsed_args):
                 dstore_vals = np.memmap(args.dstore_mmap+'_vals.npy', dtype=np.int, mode='w+', shape=(args.dstore_size, 1))
 
         dstore_idx = 0
+
         for ex_i, sample in enumerate(t):
             if 'net_input' not in sample:
                 continue
 
+            # if ex_i < 1551:
+            #     continue
+
+            # if torch.sum(sample['net_input']['src_tokens'] == bos_idx).item() != sample['net_input']['src_tokens'].shape[0]:
+            #     print(sample['net_input']['src_tokens'])
+            # for x in sample['net_input']['src_tokens']:
+            #     torch.set_printoptions(profile="full")
+            #     print(x)  # prints the whole tensor
+            #     torch.set_printoptions(profile="default")  # reset
+            #     exit()
+            # continue
             sample = utils.move_to_cuda(sample) if use_cuda else sample
 
             gen_timer.start()
@@ -179,27 +192,30 @@ def main(parsed_args):
             else:
                 hypos = scorer.generate(models, sample)
             gen_timer.stop(sample['ntokens'])
-
             for i, hypos_i in enumerate(hypos):
                 hypo = hypos_i[0]
                 if args.save_knnlm_dstore:
                     shape = hypo['dstore_keys'].shape
-                    if shape[0] == args.tokens_per_sample:
+                    # if shape[0] == args.tokens_per_sample:
+                    if True:
                         if dstore_idx + shape[0] > args.dstore_size:
+                            print("ERROR! dstore_size exceeded!")
                             shape = [args.dstore_size - dstore_idx]
                             hypo['dstore_keys'] = hypo['dstore_keys'][:shape[0]]
+                        actual_size = hypo['tokens'].shape[0]
+                        dstore_token_sample_map[sample['id'][i].cpu().item()] = (dstore_idx, actual_size+dstore_idx)
                         if args.dstore_fp16:
-                            dstore_keys[dstore_idx:shape[0]+dstore_idx] = hypo['dstore_keys'].view(
+                            dstore_keys[dstore_idx:actual_size+dstore_idx] = hypo['dstore_keys'][:actual_size, :].view(
                                 -1, args.decoder_embed_dim).cpu().numpy().astype(np.float16)
-                            dstore_vals[dstore_idx:shape[0]+dstore_idx] = hypo['tokens'].view(
+                            dstore_vals[dstore_idx:actual_size+dstore_idx] = hypo['tokens'].view(
                                 -1, 1).cpu().numpy().astype(np.int16)
                         else:
-                            dstore_keys[dstore_idx:shape[0]+dstore_idx] = hypo['dstore_keys'].view(
+                            dstore_keys[dstore_idx:actual_size+dstore_idx] = hypo['dstore_keys'][:actual_size, :].view(
                                 -1, args.decoder_embed_dim).cpu().numpy().astype(np.float32)
-                            dstore_vals[dstore_idx:shape[0]+dstore_idx] = hypo['tokens'].view(
+                            dstore_vals[dstore_idx:actual_size+dstore_idx] = hypo['tokens'].view(
                                 -1, 1).cpu().numpy().astype(np.int)
 
-                        dstore_idx += shape[0]
+                        dstore_idx += actual_size
                     else:
                         print('Skipping this one with shape', shape)
 
@@ -269,6 +285,9 @@ def main(parsed_args):
         print("dstore_idx", dstore_idx, "final shape", shape)
         print("Keys", dstore_keys.shape, dstore_keys.dtype)
         print("Vals", dstore_vals.shape, dstore_vals.dtype)
+        # save mapping
+        print("token sample id mapping size:", len(dstore_token_sample_map))
+        torch.save(dstore_token_sample_map, args.dstore_mmap+'_map.pt')
 
     avg_nll_loss = -score_sum / count / math.log(2)  # convert to base 2
     logger.info('Evaluated {} tokens in {:.1f}s ({:.2f} tokens/s)'.format(
