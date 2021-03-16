@@ -44,9 +44,15 @@ class KNN_Dstore(object):
 
         # also read in the token-sample mapping file
         self.token_sample_map = torch.load(args.dstore_filename + '_map.pt')
+        self.inv_token_sample_map = np.zeros(self.dstore_size, dtype='i')
+        for k, v in self.token_sample_map.items():
+            self.inv_token_sample_map[v[0]:v[1]] = k
 
-        # print(len(self.token_sample_map))
-        # exit()
+        # read in the locality feature from npy file
+        if 'test' in args.dstore_filename:
+            self.locality_features = np.load('examples/language_model/java/java_test_pre.original_path.npy')
+        else:
+            self.locality_features = np.load('examples/language_model/java/java_validation_pre.original_path.npy')
 
         # If you wish to load all the keys into memory
         # CAUTION: Only do this if your RAM can handle it!
@@ -102,7 +108,7 @@ class KNN_Dstore(object):
         knns = np.array(new_knns)
         # print(dists.shape)
         # print(knns.shape)
-        print(total_block_count)
+        # print(total_block_count)
         return dists, knns
 
     def get_knn_log_prob(self, queries, tgt, pad_idx, sample_ids=None):
@@ -136,13 +142,24 @@ class KNN_Dstore(object):
         queries = queries.view(-1, qshape[-1])
         tgt = tgt.contiguous().view(-1)
         token_sample_ids = sample_ids.repeat_interleave(qshape[0])
-
         dists, knns = self.get_knns(queries[tgt != pad_idx], sample_ids=token_sample_ids[tgt != pad_idx])
+        reduced_token_sample_ids = token_sample_ids[tgt != pad_idx]
+
+        locality = self.locality_features[
+            np.tile(self.inv_token_sample_map[reduced_token_sample_ids.cpu()], (knns.shape[1], 1)).T,
+            self.inv_token_sample_map[knns]]
+        # exit()
+        # for i in range(knns.shape[0]):
+        #     for j in range(knns.shape[1]):
+        #         locality[i, j] = self.locality_features[self.inv_token_sample_map[reduced_token_sample_ids[i]],
+        #                                                 self.inv_token_sample_map[knns[i, j]]]
+
+        locality = torch.from_numpy(locality).cuda()
         # (T_reducedxB)xK
         dists = torch.from_numpy(dists).cuda()
         start = time.time()
         dists = dist_func(dists, knns, queries[tgt != pad_idx, :], function=self.sim_func)
-        probs = utils.log_softmax(dists, dim=-1)
+        probs = utils.log_softmax(dists + 5000 * locality, dim=-1)
 
         index_mask = torch.eq(torch.from_numpy(self.vals[knns]).long().cuda().squeeze(-1),
                               tgt[tgt != pad_idx].unsqueeze(-1)).float()

@@ -197,27 +197,24 @@ def main(parsed_args):
                 if args.save_knnlm_dstore:
                     shape = hypo['dstore_keys'].shape
                     # if shape[0] == args.tokens_per_sample:
-                    if True:
-                        if dstore_idx + shape[0] > args.dstore_size:
-                            print("ERROR! dstore_size exceeded!")
-                            shape = [args.dstore_size - dstore_idx]
-                            hypo['dstore_keys'] = hypo['dstore_keys'][:shape[0]]
-                        actual_size = hypo['tokens'].shape[0]
-                        dstore_token_sample_map[sample['id'][i].cpu().item()] = (dstore_idx, actual_size+dstore_idx)
-                        if args.dstore_fp16:
-                            dstore_keys[dstore_idx:actual_size+dstore_idx] = hypo['dstore_keys'][:actual_size, :].view(
-                                -1, args.decoder_embed_dim).cpu().numpy().astype(np.float16)
-                            dstore_vals[dstore_idx:actual_size+dstore_idx] = hypo['tokens'].view(
-                                -1, 1).cpu().numpy().astype(np.int16)
-                        else:
-                            dstore_keys[dstore_idx:actual_size+dstore_idx] = hypo['dstore_keys'][:actual_size, :].view(
-                                -1, args.decoder_embed_dim).cpu().numpy().astype(np.float32)
-                            dstore_vals[dstore_idx:actual_size+dstore_idx] = hypo['tokens'].view(
-                                -1, 1).cpu().numpy().astype(np.int)
-
-                        dstore_idx += actual_size
+                    if dstore_idx + shape[0] > args.dstore_size:
+                        print("ERROR! dstore_size exceeded!")
+                        shape = [args.dstore_size - dstore_idx]
+                        hypo['dstore_keys'] = hypo['dstore_keys'][:shape[0]]
+                    actual_size = hypo['tokens'].shape[0]
+                    dstore_token_sample_map[sample['id'][i].cpu().item()] = (dstore_idx, actual_size+dstore_idx)
+                    if args.dstore_fp16:
+                        dstore_keys[dstore_idx:actual_size+dstore_idx] = hypo['dstore_keys'][:actual_size, :].view(
+                            -1, args.decoder_embed_dim).cpu().numpy().astype(np.float16)
+                        dstore_vals[dstore_idx:actual_size+dstore_idx] = hypo['tokens'].view(
+                            -1, 1).cpu().numpy().astype(np.int16)
                     else:
-                        print('Skipping this one with shape', shape)
+                        dstore_keys[dstore_idx:actual_size+dstore_idx] = hypo['dstore_keys'][:actual_size, :].view(
+                            -1, args.decoder_embed_dim).cpu().numpy().astype(np.float32)
+                        dstore_vals[dstore_idx:actual_size+dstore_idx] = hypo['tokens'].view(
+                            -1, 1).cpu().numpy().astype(np.int)
+
+                    dstore_idx += actual_size
 
                 sample_id = sample['id'][i]
 
