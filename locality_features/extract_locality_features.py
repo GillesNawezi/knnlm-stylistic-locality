@@ -32,7 +32,7 @@ def extract_package_name(filename):
 # extract_package_name('examples/language_model/java/java_test_pre')
 
 
-def generate_locality_matrix(filename):
+def generate_subdir_locality_matrix(filename):
     paths = []
     locality = []
     with open(filename) as path_file:
@@ -52,5 +52,27 @@ def generate_locality_matrix(filename):
     np.save(filename + '.npy', locality)
 
 
-generate_locality_matrix('examples/language_model/java/java_test_pre.original_path')
-generate_locality_matrix('examples/language_model/java/java_validation_pre.original_path')
+# generate_subdir_locality_matrix('examples/language_model/java/java_test_pre.original_path')
+# generate_subdir_locality_matrix('examples/language_model/java/java_validation_pre.original_path')
+
+
+def generate_project_locality_matrix(filename):
+    projects = []
+    locality = []
+    with open(filename) as project_file:
+        for line in project_file:
+            projects.append(line.strip())
+
+    for p in projects:
+        temp_loc = []
+        for t in projects:
+            if p == t:
+                temp_loc.append(1)
+            else:
+                temp_loc.append(0)
+        locality.append(temp_loc)
+
+    locality = np.array(locality)
+    np.save(filename + '.npy', locality)
+
+generate_project_locality_matrix('examples/language_model/java/testProjects')

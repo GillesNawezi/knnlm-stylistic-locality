@@ -104,7 +104,8 @@ class SequenceScorer(object):
                         queries,
                         orig_target.permute(1, 0),
                         sample_ids=sample['id'],
-                        pad_idx=self.pad)
+                        pad_idx=self.pad,
+                        task=kwargs['task'])
                 yhat_knn_prob = yhat_knn_prob.permute(1, 0, 2).squeeze(-1)
                 if self.args.fp16:
                     yhat_knn_prob = yhat_knn_prob.half()

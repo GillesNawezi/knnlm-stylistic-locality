@@ -21,7 +21,6 @@ from fairseq.meters import StopwatchMeter, TimeMeter
 from fairseq.sequence_scorer import SequenceScorer
 from fairseq.knnlm import KNN_Dstore
 
-
 logging.basicConfig(
     format='%(asctime)s | %(levelname)s | %(name)s | %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
@@ -160,12 +159,16 @@ def main(parsed_args):
             dstore_token_sample_map = {}
             if args.dstore_fp16:
                 print('Saving fp16')
-                dstore_keys = np.memmap(args.dstore_mmap+'_keys.npy', dtype=np.float16, mode='w+', shape=(args.dstore_size, args.decoder_embed_dim))
-                dstore_vals = np.memmap(args.dstore_mmap+'_vals.npy', dtype=np.int16, mode='w+', shape=(args.dstore_size, 1))
+                dstore_keys = np.memmap(args.dstore_mmap + '_keys.npy', dtype=np.float16, mode='w+',
+                                        shape=(args.dstore_size, args.decoder_embed_dim))
+                dstore_vals = np.memmap(args.dstore_mmap + '_vals.npy', dtype=np.int16, mode='w+',
+                                        shape=(args.dstore_size, 1))
             else:
                 print('Saving fp32')
-                dstore_keys = np.memmap(args.dstore_mmap+'_keys.npy', dtype=np.float32, mode='w+', shape=(args.dstore_size, args.decoder_embed_dim))
-                dstore_vals = np.memmap(args.dstore_mmap+'_vals.npy', dtype=np.int, mode='w+', shape=(args.dstore_size, 1))
+                dstore_keys = np.memmap(args.dstore_mmap + '_keys.npy', dtype=np.float32, mode='w+',
+                                        shape=(args.dstore_size, args.decoder_embed_dim))
+                dstore_vals = np.memmap(args.dstore_mmap + '_vals.npy', dtype=np.int, mode='w+',
+                                        shape=(args.dstore_size, 1))
 
         dstore_idx = 0
 
@@ -173,7 +176,7 @@ def main(parsed_args):
             if 'net_input' not in sample:
                 continue
 
-            # if ex_i < 1551:
+            # if ex_i > 300:
             #     continue
 
             # if torch.sum(sample['net_input']['src_tokens'] == bos_idx).item() != sample['net_input']['src_tokens'].shape[0]:
@@ -188,12 +191,14 @@ def main(parsed_args):
 
             gen_timer.start()
             if args.knnlm:
-                hypos = scorer.generate(models, sample, knn_dstore=knn_dstore)
+                hypos = scorer.generate(models, sample, knn_dstore=knn_dstore, task=task)
             else:
                 hypos = scorer.generate(models, sample)
             gen_timer.stop(sample['ntokens'])
             for i, hypos_i in enumerate(hypos):
                 hypo = hypos_i[0]
+                sample_id = sample['id'][i]
+
                 if args.save_knnlm_dstore:
                     shape = hypo['dstore_keys'].shape
                     # if shape[0] == args.tokens_per_sample:
@@ -202,21 +207,20 @@ def main(parsed_args):
                         shape = [args.dstore_size - dstore_idx]
                         hypo['dstore_keys'] = hypo['dstore_keys'][:shape[0]]
                     actual_size = hypo['tokens'].shape[0]
-                    dstore_token_sample_map[sample['id'][i].cpu().item()] = (dstore_idx, actual_size+dstore_idx)
+                    dstore_token_sample_map[sample_id.cpu().item()] = (dstore_idx, actual_size + dstore_idx)
                     if args.dstore_fp16:
-                        dstore_keys[dstore_idx:actual_size+dstore_idx] = hypo['dstore_keys'][:actual_size, :].view(
+                        dstore_keys[dstore_idx:actual_size + dstore_idx] = hypo['dstore_keys'][:actual_size, :].view(
                             -1, args.decoder_embed_dim).cpu().numpy().astype(np.float16)
-                        dstore_vals[dstore_idx:actual_size+dstore_idx] = hypo['tokens'].view(
+                        dstore_vals[dstore_idx:actual_size + dstore_idx] = hypo['tokens'].view(
                             -1, 1).cpu().numpy().astype(np.int16)
                     else:
-                        dstore_keys[dstore_idx:actual_size+dstore_idx] = hypo['dstore_keys'][:actual_size, :].view(
+                        dstore_keys[dstore_idx:actual_size + dstore_idx] = hypo['dstore_keys'][:actual_size, :].view(
                             -1, args.decoder_embed_dim).cpu().numpy().astype(np.float32)
-                        dstore_vals[dstore_idx:actual_size+dstore_idx] = hypo['tokens'].view(
+                        dstore_vals[dstore_idx:actual_size + dstore_idx] = hypo['tokens'].view(
                             -1, 1).cpu().numpy().astype(np.int)
 
                     dstore_idx += actual_size
 
-                sample_id = sample['id'][i]
 
                 tokens = hypo['tokens']
                 tgt_len = tokens.numel()
@@ -235,8 +239,8 @@ def main(parsed_args):
                             pos_scores[i + 1] += pos_scores[i]
                             pos_scores[i] = 0
 
-                #inf_scores = pos_scores.eq(float('inf')) | pos_scores.eq(float('-inf'))
-                #if inf_scores.any():
+                # inf_scores = pos_scores.eq(float('inf')) | pos_scores.eq(float('-inf'))
+                # if inf_scores.any():
                 #    logger.info(
                 #        'skipping tokens with inf scores:',
                 #        task.target_dictionary.string(tokens[inf_scores.nonzero()])
@@ -284,14 +288,21 @@ def main(parsed_args):
         print("Vals", dstore_vals.shape, dstore_vals.dtype)
         # save mapping
         print("token sample id mapping size:", len(dstore_token_sample_map))
-        torch.save(dstore_token_sample_map, args.dstore_mmap+'_map.pt')
+        torch.save(dstore_token_sample_map, args.dstore_mmap + '_map.pt')
+
+    if args.knnlm:
+        np.save('/node09_data/frank/test_proj_dist_cache.npy', np.concatenate(knn_dstore.dist_cache))
+        np.save('/node09_data/frank/test_proj_locality_cache.npy', np.concatenate(knn_dstore.project_locality_cache))
+        np.save('/node09_data/frank/test_pkg_locality_cache.npy', np.concatenate(knn_dstore.package_locality_cache))
+        np.save('/node09_data/frank/test_proj_rank_cache.npy', np.concatenate(knn_dstore.rank_cache))
+        np.save('/node09_data/frank/test_proj_correctness_cache.npy', np.concatenate(knn_dstore.correctness_cache))
 
     avg_nll_loss = -score_sum / count / math.log(2)  # convert to base 2
     logger.info('Evaluated {} tokens in {:.1f}s ({:.2f} tokens/s)'.format(
         gen_timer.n, gen_timer.sum, 1. / gen_timer.avg
     ))
     logger.info('Loss (base 2): {:.4f}, Perplexity: {:.2f}'.format(
-        avg_nll_loss, 2**avg_nll_loss
+        avg_nll_loss, 2 ** avg_nll_loss
     ))
 
     if args.output_word_stats:

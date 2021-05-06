@@ -48,11 +48,27 @@ class KNN_Dstore(object):
         for k, v in self.token_sample_map.items():
             self.inv_token_sample_map[v[0]:v[1]] = k
 
+        # store all the top-k retrieved results
+        self.sample_id_cache = []
+        self.dist_cache = []
+        self.knn_cache = []
+        self.project_locality_cache = []
+        self.package_locality_cache = []
+        self.rank_cache = []
+        self.correctness_cache = []
+
         # read in the locality feature from npy file
         if 'test' in args.dstore_filename:
-            self.locality_features = np.load('examples/language_model/java/java_test_pre.original_path.npy')
+            self.package_locality_features = np.load('examples/language_model/java/java_test_pre.original_path.npy')
+            self.project_locality_features = np.load('examples/language_model/java/testProjects.npy')
         else:
-            self.locality_features = np.load('examples/language_model/java/java_validation_pre.original_path.npy')
+            self.package_locality_features = np.load(
+                'examples/language_model/java/java_validation_pre.original_path.npy')
+            self.project_locality_features = np.load('examples/language_model/java/validProjects.npy')
+
+        # change dtype to int8 to save space
+        self.package_locality_features = self.package_locality_features.astype('int8')
+        self.project_locality_features = self.project_locality_features.astype('int8')
 
         # If you wish to load all the keys into memory
         # CAUTION: Only do this if your RAM can handle it!
@@ -81,27 +97,28 @@ class KNN_Dstore(object):
 
     def get_knns(self, queries, sample_ids=None):
         start = time.time()
-        redundancy = 2048
+        redundancy = 1024
         new_knns = []
         new_dists = []
         total_block_count = 0
 
         dists, knns = self.index.search(queries.detach().cpu().float().numpy(), self.k + redundancy)
-        # print(dists.shape)
-        # print(knns.shape)
 
-        for x, y, i in zip(knns, dists, sample_ids):
-            blocked_range = self.token_sample_map[i.item()]
-            mask = (x < blocked_range[0]) | (x >= blocked_range[1])
-            new_x = x[mask]
-            new_y = y[mask]
+        retrieved_sample_ids = self.inv_token_sample_map[knns]
+
+        for x, y, i, r in zip(knns, dists, sample_ids, retrieved_sample_ids):
+            # mask off current query sample
+            current_sample_range = self.token_sample_map[i.item()]
+            current_sample_mask = (x < current_sample_range[0]) | (x >= current_sample_range[1])
+            new_x = x[current_sample_mask]
+            new_y = y[current_sample_mask]
             total_block_count += self.k + redundancy - len(new_x)
 
             new_x = new_x[:self.k]
             new_y = new_y[:self.k]
 
-            if len(new_x) < 1024:
-                print(len(new_x))
+            if len(new_x) < self.k:
+                print('Warining: less than k at', len(new_x))
             new_knns.append(new_x)
             new_dists.append(new_y)
         dists = np.array(new_dists)
@@ -109,9 +126,15 @@ class KNN_Dstore(object):
         # print(dists.shape)
         # print(knns.shape)
         # print(total_block_count)
+
+        # save token_sample_ids, dists and knn retrieves to the disk.
+        # self.sample_id_cache.append(sample_ids)
+        # self.dist_cache.append(dists)
+        # self.knn_cache.append(knns)
+
         return dists, knns
 
-    def get_knn_log_prob(self, queries, tgt, pad_idx, sample_ids=None):
+    def get_knn_log_prob(self, queries, tgt, pad_idx, sample_ids=None, task=None):
         def dist_func(d, k, q, function=None):
             if not function:
                 # Default behavior for L2 metric is to recompute distances.
@@ -141,33 +164,75 @@ class KNN_Dstore(object):
         qshape = queries.shape
         queries = queries.view(-1, qshape[-1])
         tgt = tgt.contiguous().view(-1)
+
         token_sample_ids = sample_ids.repeat_interleave(qshape[0])
-        dists, knns = self.get_knns(queries[tgt != pad_idx], sample_ids=token_sample_ids[tgt != pad_idx])
-        reduced_token_sample_ids = token_sample_ids[tgt != pad_idx]
+        reduced_token_sample_ids = token_sample_ids[tgt != pad_idx].cpu()
+        reduced_tgt = tgt[tgt != pad_idx]
 
-        locality = self.locality_features[
-            np.tile(self.inv_token_sample_map[reduced_token_sample_ids.cpu()], (knns.shape[1], 1)).T,
+        dists, knns = self.get_knns(queries[tgt != pad_idx], sample_ids=reduced_token_sample_ids)
+
+        # locality features
+        project_locality = self.project_locality_features[
+            np.tile(reduced_token_sample_ids, (knns.shape[1], 1)).T,
             self.inv_token_sample_map[knns]]
-        # exit()
-        # for i in range(knns.shape[0]):
-        #     for j in range(knns.shape[1]):
-        #         locality[i, j] = self.locality_features[self.inv_token_sample_map[reduced_token_sample_ids[i]],
-        #                                                 self.inv_token_sample_map[knns[i, j]]]
+        flat_project_locality = project_locality.flatten()
+        project_locality = torch.from_numpy(project_locality).cuda()
 
-        locality = torch.from_numpy(locality).cuda()
-        # (T_reducedxB)xK
+        package_locality = self.package_locality_features[
+            np.tile(reduced_token_sample_ids, (knns.shape[1], 1)).T,
+            self.inv_token_sample_map[knns]]
+        flat_package_locality = package_locality.flatten()
+        package_locality = torch.from_numpy(package_locality).cuda()
+
+        # ret_token_id = self.vals[knns].squeeze(-1)
+        # print(dists[1500][0])
+        # print(task.source_dictionary[ret_token_id[1500][0]])
+        #
+        # print(reduced_token_sample_ids[1500])
+        # print(task.source_dictionary[reduced_tgt[1500]])
+        # exit()
+
+        # save if retrieved is eq to actual tgt?
+
+        correctness = self.vals[knns].squeeze(-1) == \
+                      np.expand_dims(reduced_tgt.cpu().numpy(), 1).repeat(knns.shape[1], axis=1)
+        correctness = correctness.astype("int8")
+        flat_correctness = correctness.flatten()
+        # # (T_reducedxB)xK
         dists = torch.from_numpy(dists).cuda()
         start = time.time()
         dists = dist_func(dists, knns, queries[tgt != pad_idx, :], function=self.sim_func)
-        probs = utils.log_softmax(dists + 5000 * locality, dim=-1)
 
+        flat_rank = np.tile(np.arange(1, dists.shape[1] + 1, dtype='int16'), dists.shape[0])
+        flat_dists = dists.detach().cpu().numpy().flatten()
+
+        self.dist_cache.append(flat_dists)
+        self.project_locality_cache.append(flat_project_locality)
+        self.package_locality_cache.append(flat_package_locality)
+        self.rank_cache.append(flat_rank)
+        self.correctness_cache.append(flat_correctness)
+
+        local1 = torch.zeros_like(project_locality).cuda()
+        local1[(project_locality == 1) & (package_locality == 0)] = 1
+
+        # make 3 features, local=0, 1, 2 and mutually exclusive
+        locality_feat = [1 - (local1 | package_locality), local1, package_locality]
+
+        # probs = utils.log_softmax(dists + 15 * project_locality + 15 * package_locality, dim=-1)
+        probs = utils.log_softmax(locality_feat[0] * dists +
+                                  locality_feat[1] * (0.65 * dists + 5) +
+                                  locality_feat[2] * (0.3 * dists + 4), dim=-1)
+
+        # to calculate only the prob on the ground truth tgt token for ppl
         index_mask = torch.eq(torch.from_numpy(self.vals[knns]).long().cuda().squeeze(-1),
                               tgt[tgt != pad_idx].unsqueeze(-1)).float()
+
         index_mask[index_mask == 0] = -10000  # for stability
         index_mask[index_mask == 1] = 0
 
         # (T_reducedxB)
         yhat_knn_prob = torch.logsumexp(probs + index_mask, dim=-1).clone()
+
         full_yhat_knn_prob = torch.full([qshape[0] * qshape[1]], -10000).cuda()
         full_yhat_knn_prob[tgt != pad_idx] = yhat_knn_prob
 
