@@ -1,3 +1,6 @@
+# original data files
+examples/language_model/java*
+
 # JetBrains PyCharm IDE
 .idea/
 
