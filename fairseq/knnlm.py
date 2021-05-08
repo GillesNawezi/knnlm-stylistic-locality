@@ -98,7 +98,7 @@ class KNN_Dstore(object):
 
     def get_knns(self, queries, sample_ids=None):
         start = time.time()
-        redundancy = 1024
+        redundancy = 2048
         new_knns = []
         new_dists = []
         total_block_count = 0
@@ -219,7 +219,7 @@ class KNN_Dstore(object):
         # make 3 features, local=0, 1, 2 and mutually exclusive
         locality_feat = [1 - (local1 | package_locality), local1, package_locality]
 
-        probs = utils.log_softmax(dists -9.6920 * project_locality -11.3807 * package_locality, dim=-1)
+        probs = utils.log_softmax(dists + 15 * project_locality + 15 * package_locality, dim=-1)
         # probs = utils.log_softmax(locality_feat[0] * dists +
         #                           locality_feat[1] * (0.3595 * dists - 0.6854) +
         #                           locality_feat[2] * (0.3975 * dists - 0.1214), dim=-1)
