@@ -56,6 +56,7 @@ class KNN_Dstore(object):
         self.package_locality_cache = []
         self.rank_cache = []
         self.correctness_cache = []
+        self.index_mask_cache = []
 
         # read in the locality feature from npy file
         if 'test' in args.dstore_filename:
@@ -218,10 +219,10 @@ class KNN_Dstore(object):
         # make 3 features, local=0, 1, 2 and mutually exclusive
         locality_feat = [1 - (local1 | package_locality), local1, package_locality]
 
-        # probs = utils.log_softmax(dists + 15 * project_locality + 15 * package_locality, dim=-1)
-        probs = utils.log_softmax(locality_feat[0] * dists +
-                                  locality_feat[1] * (0.65 * dists + 5) +
-                                  locality_feat[2] * (0.3 * dists + 4), dim=-1)
+        probs = utils.log_softmax(dists -9.6920 * project_locality -11.3807 * package_locality, dim=-1)
+        # probs = utils.log_softmax(locality_feat[0] * dists +
+        #                           locality_feat[1] * (0.3595 * dists - 0.6854) +
+        #                           locality_feat[2] * (0.3975 * dists - 0.1214), dim=-1)
 
         # to calculate only the prob on the ground truth tgt token for ppl
         index_mask = torch.eq(torch.from_numpy(self.vals[knns]).long().cuda().squeeze(-1),
@@ -229,6 +230,8 @@ class KNN_Dstore(object):
 
         index_mask[index_mask == 0] = -10000  # for stability
         index_mask[index_mask == 1] = 0
+
+        self.index_mask_cache.append(index_mask.cpu().numpy().flatten().astype('int16'))
 
         # (T_reducedxB)
         yhat_knn_prob = torch.logsumexp(probs + index_mask, dim=-1).clone()

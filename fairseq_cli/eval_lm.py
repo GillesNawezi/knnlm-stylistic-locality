@@ -296,6 +296,7 @@ def main(parsed_args):
         np.save('/node09_data/frank/test_pkg_locality_cache.npy', np.concatenate(knn_dstore.package_locality_cache))
         np.save('/node09_data/frank/test_proj_rank_cache.npy', np.concatenate(knn_dstore.rank_cache))
         np.save('/node09_data/frank/test_proj_correctness_cache.npy', np.concatenate(knn_dstore.correctness_cache))
+        np.save('/node09_data/frank/test_proj_index_mask_cache.npy', np.concatenate(knn_dstore.index_mask_cache))
 
     avg_nll_loss = -score_sum / count / math.log(2)  # convert to base 2
     logger.info('Evaluated {} tokens in {:.1f}s ({:.2f} tokens/s)'.format(

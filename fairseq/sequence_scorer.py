@@ -70,7 +70,6 @@ class SequenceScorer(object):
             attn = decoder_out[1]
             if type(attn) is dict:
                 attn = attn.get('attn', None)
-
             batched = batch_for_softmax(decoder_out, orig_target)
             probs, idx = None, 0
             for i, (bd, tgt, is_single) in enumerate(batched):
