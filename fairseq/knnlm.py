@@ -164,9 +164,14 @@ class KNN_Dstore(object):
         # reshape: (TxB)xC
         qshape = queries.shape
         queries = queries.view(-1, qshape[-1])
+
+        # for i in tgt[:, 120]:
+        #     print(task.source_dictionary[i], end=' ')
+
         tgt = tgt.contiguous().view(-1)
 
-        token_sample_ids = sample_ids.repeat_interleave(qshape[0])
+        token_sample_ids = sample_ids.repeat(qshape[0], 1).view(-1)
+
         reduced_token_sample_ids = token_sample_ids[tgt != pad_idx].cpu()
         reduced_tgt = tgt[tgt != pad_idx]
 
@@ -189,9 +194,6 @@ class KNN_Dstore(object):
         # print(dists[1500][0])
         # print(task.source_dictionary[ret_token_id[1500][0]])
         #
-        # print(reduced_token_sample_ids[1500])
-        # print(task.source_dictionary[reduced_tgt[1500]])
-        # exit()
 
         # save if retrieved is eq to actual tgt?
 
@@ -213,7 +215,7 @@ class KNN_Dstore(object):
         self.rank_cache.append(flat_rank)
         self.correctness_cache.append(flat_correctness)
 
-        local1 = torch.zeros_like(project_locality).cuda()
+        local1 = torch.zeros_like(project_locality, device='cuda')
         local1[(project_locality == 1) & (package_locality == 0)] = 1
 
         # make 3 features, local=0, 1, 2 and mutually exclusive
@@ -221,8 +223,8 @@ class KNN_Dstore(object):
 
         probs = utils.log_softmax(dists + 15 * project_locality + 15 * package_locality, dim=-1)
         # probs = utils.log_softmax(locality_feat[0] * dists +
-        #                           locality_feat[1] * (0.3595 * dists - 0.6854) +
-        #                           locality_feat[2] * (0.3975 * dists - 0.1214), dim=-1)
+        #                           locality_feat[1] * (0.0803 * dists - 105.3669) +
+        #                           locality_feat[2] * (0.1285 * dists - 97.1999), dim=-1)
 
         # to calculate only the prob on the ground truth tgt token for ppl
         index_mask = torch.eq(torch.from_numpy(self.vals[knns]).long().cuda().squeeze(-1),
