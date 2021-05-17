@@ -17,6 +17,7 @@ class KNN_Dstore(object):
         self.sim_func = args.knn_sim_func
         self.dstore_fp16 = args.dstore_fp16
         self.index = self.setup_faiss(args)
+        self.args = args
 
     def setup_faiss(self, args):
         if not args.dstore_filename:
@@ -223,17 +224,28 @@ class KNN_Dstore(object):
         self.rank_cache.append(flat_rank)
         self.correctness_cache.append(flat_correctness)
 
-        local1 = torch.zeros_like(project_locality, device='cuda')
-        local1[(project_locality == 1) & (package_locality == 0)] = 1
+        if 'java' in self.args.dstore_filename:
+            local1 = torch.zeros_like(project_locality, device='cuda')
+            local1[(project_locality == 1) & (package_locality == 0)] = 1
 
-        # make 3 features, local=0, 1, 2 and mutually exclusive
-        locality_feat = [1 - (local1 | package_locality), local1, package_locality]
+            # make 3 features, local=0, 1, 2 and mutually exclusive
+            locality_feat = [1 - (local1 | package_locality), local1, package_locality]
+            probs = utils.log_softmax(dists, dim=-1)
+            # probs = utils.log_softmax(0.3470 * dists + 0.3350 * package_locality, dim=-1)
+            # probs = utils.log_softmax(locality_feat[0] * (0.2968 * dists) +
+            #                           # locality_feat[1] * (0.0381 * dists) +
+            #                           locality_feat[2] * (0.3811 * dists + 1.7871), dim=-1)
 
-        probs = utils.log_softmax(dists, dim=-1)
-        # probs = utils.log_softmax(0.3470 * dists + 0.3350 * package_locality, dim=-1)
-        # probs = utils.log_softmax(locality_feat[0] * (0.2968 * dists) +
-        #                           # locality_feat[1] * (0.0381 * dists) +
-        #                           locality_feat[2] * (0.3811 * dists + 1.7871), dim=-1)
+        else:
+            # wiki
+            locality_indicator = project_locality + 2 * package_locality
+
+            locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=4).permute(2, 0, 1)
+
+            probs = utils.log_softmax(locality_feat[0] * (1.2721 * dists) +
+                                      locality_feat[1] * (1.3063 * dists + 1.0640) +
+                                      locality_feat[2] * (1.2383 * dists + -0.2982) +
+                                      locality_feat[3] * (1.4713 * dists + 3.1667), dim=-1)
 
         # to calculate only the prob on the ground truth tgt token for ppl
         index_mask = torch.eq(torch.from_numpy(self.vals[knns]).long().cuda().squeeze(-1),
