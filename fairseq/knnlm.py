@@ -60,8 +60,15 @@ class KNN_Dstore(object):
 
         # read in the locality feature from npy file
         if 'test' in args.dstore_filename:
-            self.package_locality_features = np.load('examples/language_model/java/java_test_pre.original_path.npy')
-            self.project_locality_features = np.load('examples/language_model/java/testProjects.npy')
+            if 'java' in args.dstore_filename:
+                self.package_locality_features = np.load('examples/language_model/java/java_test_pre.original_path.npy')
+                self.project_locality_features = np.load('examples/language_model/java/testProjects.npy')
+            else:
+                # wikitext
+                # section locality
+                self.package_locality_features = np.load('examples/language_model/wikitext103_seg/testtrain.txt.sec.npy')
+                # domain locality
+                self.project_locality_features = np.load('examples/language_model/wikitext103_seg/testtrain.txt.dom.npy')
         else:
             self.package_locality_features = np.load(
                 'examples/language_model/java/java_validation_pre.original_path.npy')
@@ -79,7 +86,8 @@ class KNN_Dstore(object):
 
             if not args.no_load_keys:
                 del self.keys
-                self.keys_from_memmap = np.memmap(args.dstore_filename + '_keys.npy', dtype=np.float32, mode='r',
+                self.keys_from_memmap = np.memmap(args.dstore_filename + '_keys.npy',
+                                                  dtype=np.float16 if args.dstore_fp16 else np.float32, mode='r',
                                                   shape=(self.dstore_size, self.dimension))
                 self.keys = np.zeros((self.dstore_size, self.dimension),
                                      dtype=np.float16 if args.dstore_fp16 else np.float32)
@@ -87,7 +95,8 @@ class KNN_Dstore(object):
                 self.keys = self.keys.astype(np.float16 if args.dstore_fp16 else np.float32)
 
             del self.vals
-            self.vals_from_memmap = np.memmap(args.dstore_filename + '_vals.npy', dtype=np.int, mode='r',
+            self.vals_from_memmap = np.memmap(args.dstore_filename + '_vals.npy',
+                                              dtype=np.int16 if args.dstore_fp16 else np.int, mode='r',
                                               shape=(self.dstore_size, 1))
             self.vals = np.zeros((self.dstore_size, 1), dtype=np.int16 if args.dstore_fp16 else np.int)
             self.vals = self.vals_from_memmap[:]
@@ -196,7 +205,6 @@ class KNN_Dstore(object):
         #
 
         # save if retrieved is eq to actual tgt?
-
         correctness = self.vals[knns].squeeze(-1) == \
                       np.expand_dims(reduced_tgt.cpu().numpy(), 1).repeat(knns.shape[1], axis=1)
         correctness = correctness.astype("int8")
@@ -221,10 +229,11 @@ class KNN_Dstore(object):
         # make 3 features, local=0, 1, 2 and mutually exclusive
         locality_feat = [1 - (local1 | package_locality), local1, package_locality]
 
-        probs = utils.log_softmax(dists + 15 * project_locality + 15 * package_locality, dim=-1)
-        # probs = utils.log_softmax(locality_feat[0] * dists +
-        #                           locality_feat[1] * (0.0803 * dists - 105.3669) +
-        #                           locality_feat[2] * (0.1285 * dists - 97.1999), dim=-1)
+        probs = utils.log_softmax(dists, dim=-1)
+        # probs = utils.log_softmax(0.3470 * dists + 0.3350 * package_locality, dim=-1)
+        # probs = utils.log_softmax(locality_feat[0] * (0.2968 * dists) +
+        #                           # locality_feat[1] * (0.0381 * dists) +
+        #                           locality_feat[2] * (0.3811 * dists + 1.7871), dim=-1)
 
         # to calculate only the prob on the ground truth tgt token for ppl
         index_mask = torch.eq(torch.from_numpy(self.vals[knns]).long().cuda().squeeze(-1),
@@ -237,7 +246,6 @@ class KNN_Dstore(object):
 
         # (T_reducedxB)
         yhat_knn_prob = torch.logsumexp(probs + index_mask, dim=-1).clone()
-
         full_yhat_knn_prob = torch.full([qshape[0] * qshape[1]], -10000).cuda()
         full_yhat_knn_prob[tgt != pad_idx] = yhat_knn_prob
 

@@ -290,14 +290,6 @@ def main(parsed_args):
         print("token sample id mapping size:", len(dstore_token_sample_map))
         torch.save(dstore_token_sample_map, args.dstore_mmap + '_map.pt')
 
-    if args.knnlm:
-        np.save('/node09_data/frank/test_proj_dist_cache.npy', np.concatenate(knn_dstore.dist_cache))
-        np.save('/node09_data/frank/test_proj_locality_cache.npy', np.concatenate(knn_dstore.project_locality_cache))
-        np.save('/node09_data/frank/test_pkg_locality_cache.npy', np.concatenate(knn_dstore.package_locality_cache))
-        np.save('/node09_data/frank/test_proj_rank_cache.npy', np.concatenate(knn_dstore.rank_cache))
-        np.save('/node09_data/frank/test_proj_correctness_cache.npy', np.concatenate(knn_dstore.correctness_cache))
-        np.save('/node09_data/frank/test_proj_index_mask_cache.npy', np.concatenate(knn_dstore.index_mask_cache))
-
     avg_nll_loss = -score_sum / count / math.log(2)  # convert to base 2
     logger.info('Evaluated {} tokens in {:.1f}s ({:.2f} tokens/s)'.format(
         gen_timer.n, gen_timer.sum, 1. / gen_timer.avg
@@ -305,6 +297,18 @@ def main(parsed_args):
     logger.info('Loss (base 2): {:.4f}, Perplexity: {:.2f}'.format(
         avg_nll_loss, 2 ** avg_nll_loss
     ))
+
+    if args.knnlm:
+        dir_name = args.dstore_filename.split('/')[-2]
+        if not os.path.exists('saved_tensors/' + dir_name):
+            os.makedirs('saved_tensors/' + dir_name)
+
+        np.save('saved_tensors/{}/test_proj_dist_cache.npy'.format(dir_name), np.concatenate(knn_dstore.dist_cache))
+        np.save('saved_tensors/{}/test_proj_locality_cache.npy'.format(dir_name), np.concatenate(knn_dstore.project_locality_cache))
+        np.save('saved_tensors/{}/test_pkg_locality_cache.npy'.format(dir_name), np.concatenate(knn_dstore.package_locality_cache))
+        np.save('saved_tensors/{}/test_proj_rank_cache.npy'.format(dir_name), np.concatenate(knn_dstore.rank_cache))
+        np.save('saved_tensors/{}/test_proj_correctness_cache.npy'.format(dir_name), np.concatenate(knn_dstore.correctness_cache))
+        np.save('saved_tensors/{}/test_proj_index_mask_cache.npy'.format(dir_name), np.concatenate(knn_dstore.index_mask_cache))
 
     if args.output_word_stats:
         for ws in sorted(word_stats.values(), key=lambda x: x.count, reverse=True):
