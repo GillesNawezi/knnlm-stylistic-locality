@@ -53,16 +53,20 @@ def generate_subdir_locality_matrix(filename):
 
 
 # generate_subdir_locality_matrix('examples/language_model/java/java_test_pre.original_path')
-# generate_subdir_locality_matrix('examples/language_model/java/java_validation_pre.original_path')
+generate_subdir_locality_matrix('examples/language_model/java/java_validation_pre.original_path')
 
 
 def generate_project_locality_matrix(filename):
     projects = []
     locality = []
     with open(filename) as project_file:
-        for line in project_file:
-            projects.append(line.strip())
-
+        if 'testProjects' in filename:
+            for line in project_file:
+                projects.append(line.strip())
+        else:
+            # validation set has no specific project mapping
+            for line in project_file:
+                projects.append(line.strip().split('Valid-processed/')[1].split('/')[0])
     for p in projects:
         temp_loc = []
         for t in projects:
@@ -73,6 +77,10 @@ def generate_project_locality_matrix(filename):
         locality.append(temp_loc)
 
     locality = np.array(locality)
-    np.save(filename + '.npy', locality)
+    if 'testProjects' in filename:
+        np.save('examples/language_model/java/testProjects.npy', locality)
+    else:
+        np.save('examples/language_model/java/validProjects.npy', locality)
 
-generate_project_locality_matrix('examples/language_model/java/testProjects')
+# generate_project_locality_matrix('examples/language_model/java/testProjects')
+generate_project_locality_matrix('examples/language_model/java/java_validation_pre.original_path')

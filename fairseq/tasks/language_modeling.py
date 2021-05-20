@@ -115,6 +115,10 @@ class LanguageModelingTask(FairseqTask):
         parser.add_argument('--move-dstore-to-mem', default=False, action='store_true',
                             help='move the keys and values for knn to memory')
         ## knnlm related items
+        ## use locality feature
+        parser.add_argument('--use-locality', default=False, action='store_true',
+                            help='use locality feature')
+
         # fmt: on
 
     def __init__(self, args, dictionary, output_dictionary=None, targets=None):

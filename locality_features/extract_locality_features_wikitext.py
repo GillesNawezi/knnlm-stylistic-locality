@@ -23,15 +23,14 @@ def generate_article_locality_matrix(filename):
 
 
 # generate_article_locality_matrix('../examples/language_model/wikitext103_seg/test.txt.docid')
-# generate_subdir_locality_matrix('examples/language_model/java/java_validation_pre.original_path')
 
 
-def generate_section_locality_matrix():
+def generate_section_locality_matrix(split_name):
     test_sections = []
     testtrain_sections = []
     locality = []
-    with open('examples/language_model/wikitext103_seg/test.txt.sec') as test_section_file, \
-            open('examples/language_model/wikitext103_seg/testtrain.txt.sec') as testtrain_section_file:
+    with open('examples/language_model/wikitext103_seg/{}.txt.sec'.format(split_name)) as test_section_file, \
+            open('examples/language_model/wikitext103_seg/{}train.txt.sec'.format(split_name)) as testtrain_section_file:
         for line in test_section_file:
             test_sections.append(line.strip())
         for line in testtrain_section_file:
@@ -47,15 +46,15 @@ def generate_section_locality_matrix():
         locality.append(temp_loc)
 
     locality = np.array(locality).astype('int8')
-    np.save('examples/language_model/wikitext103_seg/testtrain.txt.sec.npy', locality)
+    np.save('examples/language_model/wikitext103_seg/{}train.txt.sec.npy'.format(split_name), locality)
 
 
-def generate_domain_locality_matrix():
+def generate_domain_locality_matrix(split_name):
     test_domains = []
     testtrain_domains = []
     locality = []
-    with open('examples/language_model/wikitext103_seg/test.txt.dom') as test_domain_file, \
-            open('examples/language_model/wikitext103_seg/testtrain.txt.dom') as testtrain_domain_file:
+    with open('examples/language_model/wikitext103_seg/{}.txt.dom'.format(split_name)) as test_domain_file, \
+            open('examples/language_model/wikitext103_seg/{}train.txt.dom'.format(split_name)) as testtrain_domain_file:
         for line in test_domain_file:
             test_domains.append(set(line.strip().split(';')))
         for line in testtrain_domain_file:
@@ -72,9 +71,9 @@ def generate_domain_locality_matrix():
         locality.append(temp_loc)
 
     locality = np.array(locality).astype('int8')
-    np.save('examples/language_model/wikitext103_seg/testtrain.txt.dom.npy', locality)
+    np.save('examples/language_model/wikitext103_seg/{}train.txt.dom.npy'.format(split_name), locality)
 
 
-generate_section_locality_matrix()
-generate_domain_locality_matrix()
+generate_section_locality_matrix('valid')
+generate_domain_locality_matrix('valid')
 

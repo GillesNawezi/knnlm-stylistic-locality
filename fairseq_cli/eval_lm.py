@@ -188,7 +188,6 @@ def main(parsed_args):
             #     exit()
             # continue
             sample = utils.move_to_cuda(sample) if use_cuda else sample
-
             gen_timer.start()
             if args.knnlm:
                 hypos = scorer.generate(models, sample, knn_dstore=knn_dstore, task=task)
@@ -303,12 +302,14 @@ def main(parsed_args):
         if not os.path.exists('saved_tensors/' + dir_name):
             os.makedirs('saved_tensors/' + dir_name)
 
-        np.save('saved_tensors/{}/test_proj_dist_cache.npy'.format(dir_name), np.concatenate(knn_dstore.dist_cache))
-        np.save('saved_tensors/{}/test_proj_locality_cache.npy'.format(dir_name), np.concatenate(knn_dstore.project_locality_cache))
-        np.save('saved_tensors/{}/test_pkg_locality_cache.npy'.format(dir_name), np.concatenate(knn_dstore.package_locality_cache))
-        np.save('saved_tensors/{}/test_proj_rank_cache.npy'.format(dir_name), np.concatenate(knn_dstore.rank_cache))
-        np.save('saved_tensors/{}/test_proj_correctness_cache.npy'.format(dir_name), np.concatenate(knn_dstore.correctness_cache))
-        np.save('saved_tensors/{}/test_proj_index_mask_cache.npy'.format(dir_name), np.concatenate(knn_dstore.index_mask_cache))
+        split_name = args.gen_subset
+        np.save('saved_tensors/{}/{}_proj_dist_cache.npy'.format(dir_name, split_name), np.concatenate(knn_dstore.dist_cache))
+        np.save('saved_tensors/{}/{}_proj_locality_cache.npy'.format(dir_name, split_name), np.concatenate(knn_dstore.project_locality_cache))
+        np.save('saved_tensors/{}/{}_pkg_locality_cache.npy'.format(dir_name, split_name), np.concatenate(knn_dstore.package_locality_cache))
+        np.save('saved_tensors/{}/{}_proj_rank_cache.npy'.format(dir_name, split_name), np.concatenate(knn_dstore.rank_cache))
+        np.save('saved_tensors/{}/{}_proj_correctness_cache.npy'.format(dir_name, split_name), np.concatenate(knn_dstore.correctness_cache))
+        np.save('saved_tensors/{}/{}_proj_index_mask_cache.npy'.format(dir_name, split_name), np.concatenate(knn_dstore.index_mask_cache))
+        np.save('saved_tensors/{}/{}_context_cache.npy'.format(dir_name, split_name), np.concatenate(knn_dstore.context_cache))
 
     if args.output_word_stats:
         for ws in sorted(word_stats.values(), key=lambda x: x.count, reverse=True):

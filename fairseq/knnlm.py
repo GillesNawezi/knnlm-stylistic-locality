@@ -59,8 +59,12 @@ class KNN_Dstore(object):
         self.correctness_cache = []
         self.index_mask_cache = []
 
+        # store context vectors for later optimization
+        self.context_cache = []
+
+
         # read in the locality feature from npy file
-        if 'test' in args.dstore_filename:
+        if 'test' in args.gen_subset:
             if 'java' in args.dstore_filename:
                 self.package_locality_features = np.load('examples/language_model/java/java_test_pre.original_path.npy')
                 self.project_locality_features = np.load('examples/language_model/java/testProjects.npy')
@@ -70,10 +74,17 @@ class KNN_Dstore(object):
                 self.package_locality_features = np.load('examples/language_model/wikitext103_seg/testtrain.txt.sec.npy')
                 # domain locality
                 self.project_locality_features = np.load('examples/language_model/wikitext103_seg/testtrain.txt.dom.npy')
-        else:
-            self.package_locality_features = np.load(
-                'examples/language_model/java/java_validation_pre.original_path.npy')
-            self.project_locality_features = np.load('examples/language_model/java/validProjects.npy')
+        elif 'valid' in args.gen_subset:
+            if 'java' in args.dstore_filename:
+                self.package_locality_features = np.load(
+                    'examples/language_model/java/java_validation_pre.original_path.npy')
+                self.project_locality_features = np.load('examples/language_model/java/validProjects.npy')
+            else:
+                # wikitext
+                # section locality
+                self.package_locality_features = np.load('examples/language_model/wikitext103_seg/validtrain.txt.sec.npy')
+                # domain locality
+                self.project_locality_features = np.load('examples/language_model/wikitext103_seg/validtrain.txt.dom.npy')
 
         # change dtype to int8 to save space
         self.package_locality_features = self.package_locality_features.astype('int8')
@@ -114,7 +125,6 @@ class KNN_Dstore(object):
         total_block_count = 0
 
         dists, knns = self.index.search(queries.detach().cpu().float().numpy(), self.k + redundancy)
-
         retrieved_sample_ids = self.inv_token_sample_map[knns]
 
         for x, y, i, r in zip(knns, dists, sample_ids, retrieved_sample_ids):
@@ -137,12 +147,6 @@ class KNN_Dstore(object):
         # print(dists.shape)
         # print(knns.shape)
         # print(total_block_count)
-
-        # save token_sample_ids, dists and knn retrieves to the disk.
-        # self.sample_id_cache.append(sample_ids)
-        # self.dist_cache.append(dists)
-        # self.knn_cache.append(knns)
-
         return dists, knns
 
     def get_knn_log_prob(self, queries, tgt, pad_idx, sample_ids=None, task=None):
@@ -185,6 +189,7 @@ class KNN_Dstore(object):
         reduced_token_sample_ids = token_sample_ids[tgt != pad_idx].cpu()
         reduced_tgt = tgt[tgt != pad_idx]
 
+        self.context_cache.append(queries[tgt != pad_idx].cpu().numpy())
         dists, knns = self.get_knns(queries[tgt != pad_idx], sample_ids=reduced_token_sample_ids)
 
         # locality features
@@ -203,7 +208,6 @@ class KNN_Dstore(object):
         # ret_token_id = self.vals[knns].squeeze(-1)
         # print(dists[1500][0])
         # print(task.source_dictionary[ret_token_id[1500][0]])
-        #
 
         # save if retrieved is eq to actual tgt?
         correctness = self.vals[knns].squeeze(-1) == \
@@ -224,28 +228,44 @@ class KNN_Dstore(object):
         self.rank_cache.append(flat_rank)
         self.correctness_cache.append(flat_correctness)
 
-        if 'java' in self.args.dstore_filename:
-            local1 = torch.zeros_like(project_locality, device='cuda')
-            local1[(project_locality == 1) & (package_locality == 0)] = 1
+        if self.args.use_locality:
+            if 'java' in self.args.dstore_filename:
+                locality_indicator = project_locality + package_locality
+                locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=3).permute(2, 0, 1)
 
-            # make 3 features, local=0, 1, 2 and mutually exclusive
-            locality_feat = [1 - (local1 | package_locality), local1, package_locality]
-            probs = utils.log_softmax(dists, dim=-1)
-            # probs = utils.log_softmax(0.3470 * dists + 0.3350 * package_locality, dim=-1)
-            # probs = utils.log_softmax(locality_feat[0] * (0.2968 * dists) +
-            #                           # locality_feat[1] * (0.0381 * dists) +
-            #                           locality_feat[2] * (0.3811 * dists + 1.7871), dim=-1)
+                # local1 = torch.zeros_like(project_locality, device='cuda')
+                # local1[(project_locality == 1) & (package_locality == 0)] = 1
+                #
+                # # make 3 features, local=0, 1, 2 and mutually exclusive
+                # locality_feat = [1 - (local1 | package_locality), local1, package_locality]
+                # probs = utils.log_softmax(0.3470 * dists + 0.3350 * package_locality, dim=-1)
+                # optimized on test
+                # probs = utils.log_softmax(locality_feat[0] * (0.0248 * dists) +
+                #                           locality_feat[1] * (0.0385 * dists + 3.9068) +
+                #                           locality_feat[2] * (0.0487 * dists + 6.4349), dim=-1)
+                probs = utils.log_softmax(locality_feat[0] * (0.0223 * dists) +
+                                          locality_feat[1] * (0.0326 * dists + 3.6268) +
+                                          locality_feat[2] * (0.0411 * dists + 5.9197), dim=-1)
+            else:
+                # wiki
+                locality_indicator = project_locality + 2 * package_locality
+
+                locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=4).permute(2, 0, 1)
+
+                # optimized on test
+                # probs = utils.log_softmax(locality_feat[0] * (1.2721 * dists) +
+                #                           locality_feat[1] * (1.3063 * dists + 1.0640) +
+                #                           locality_feat[2] * (1.2383 * dists + -0.2982) +
+                #                           locality_feat[3] * (1.4713 * dists + 3.1667), dim=-1)
+
+                probs = utils.log_softmax(locality_feat[0] * (1.2326 * dists) +
+                                          locality_feat[1] * (1.2459 * dists + 1.0868) +
+                                          locality_feat[2] * (1.2881 * dists + 1.2495) +
+                                          locality_feat[3] * (1.2853 * dists + 1.4641), dim=-1)
+
 
         else:
-            # wiki
-            locality_indicator = project_locality + 2 * package_locality
-
-            locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=4).permute(2, 0, 1)
-
-            probs = utils.log_softmax(locality_feat[0] * (1.2721 * dists) +
-                                      locality_feat[1] * (1.3063 * dists + 1.0640) +
-                                      locality_feat[2] * (1.2383 * dists + -0.2982) +
-                                      locality_feat[3] * (1.4713 * dists + 3.1667), dim=-1)
+            probs = utils.log_softmax(dists, dim=-1)
 
         # to calculate only the prob on the ground truth tgt token for ppl
         index_mask = torch.eq(torch.from_numpy(self.vals[knns]).long().cuda().squeeze(-1),
