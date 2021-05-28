@@ -1,10 +1,43 @@
 import torch
+from torch import nn
 import faiss
 import math
 import numpy as np
 from fairseq import utils
 import time
 from fairseq.data import Dictionary
+
+
+class WeightedDist(torch.nn.Module):
+    def __init__(self,
+                 hidden_units=32,
+                 nlayers=3,
+                 dropout=0.,
+                 activation='relu',
+                 context_dim=1024,
+                 num_outputs=7, ):
+        super().__init__()
+
+        models = [nn.Linear(context_dim, hidden_units), nn.Dropout(p=dropout)]
+        if activation == 'relu':
+            models.append(nn.ReLU())
+        elif activation == 'linear':
+            pass
+        else:
+            raise ValueError(f'activation {activation} not supported')
+
+        for _ in range(nlayers - 1):
+            models.extend([nn.Linear(hidden_units, hidden_units), nn.Dropout(p=dropout)])
+            if activation == 'relu':
+                models.append(nn.ReLU())
+            elif activation == 'linear':
+                pass
+            else:
+                raise ValueError(f'activation {activation} not supported')
+
+        models.append(nn.Linear(hidden_units, num_outputs))
+
+        self.model = nn.Sequential(*models)
 
 
 class KNN_Dstore(object):
@@ -43,53 +76,6 @@ class KNN_Dstore(object):
             self.vals = np.memmap(args.dstore_filename + '_vals.npy', dtype=np.int, mode='r',
                                   shape=(self.dstore_size, 1))
 
-        # also read in the token-sample mapping file
-        self.token_sample_map = torch.load(args.dstore_filename + '_map.pt')
-        self.inv_token_sample_map = np.zeros(self.dstore_size, dtype='i')
-        for k, v in self.token_sample_map.items():
-            self.inv_token_sample_map[v[0]:v[1]] = k
-
-        # store all the top-k retrieved results
-        self.sample_id_cache = []
-        self.dist_cache = []
-        self.knn_cache = []
-        self.project_locality_cache = []
-        self.package_locality_cache = []
-        self.rank_cache = []
-        self.correctness_cache = []
-        self.index_mask_cache = []
-
-        # store context vectors for later optimization
-        self.context_cache = []
-
-
-        # read in the locality feature from npy file
-        if 'test' in args.gen_subset:
-            if 'java' in args.dstore_filename:
-                self.package_locality_features = np.load('examples/language_model/java/java_test_pre.original_path.npy')
-                self.project_locality_features = np.load('examples/language_model/java/testProjects.npy')
-            else:
-                # wikitext
-                # section locality
-                self.package_locality_features = np.load('examples/language_model/wikitext103_seg/testtrain.txt.sec.npy')
-                # domain locality
-                self.project_locality_features = np.load('examples/language_model/wikitext103_seg/testtrain.txt.dom.npy')
-        elif 'valid' in args.gen_subset:
-            if 'java' in args.dstore_filename:
-                self.package_locality_features = np.load(
-                    'examples/language_model/java/java_validation_pre.original_path.npy')
-                self.project_locality_features = np.load('examples/language_model/java/validProjects.npy')
-            else:
-                # wikitext
-                # section locality
-                self.package_locality_features = np.load('examples/language_model/wikitext103_seg/validtrain.txt.sec.npy')
-                # domain locality
-                self.project_locality_features = np.load('examples/language_model/wikitext103_seg/validtrain.txt.dom.npy')
-
-        # change dtype to int8 to save space
-        self.package_locality_features = self.package_locality_features.astype('int8')
-        self.project_locality_features = self.project_locality_features.astype('int8')
-
         # If you wish to load all the keys into memory
         # CAUTION: Only do this if your RAM can handle it!
         if args.move_dstore_to_mem:
@@ -114,6 +100,74 @@ class KNN_Dstore(object):
             self.vals = self.vals_from_memmap[:]
             self.vals = self.vals.astype(np.int16 if args.dstore_fp16 else np.int)
             print('Loading to memory took {} s'.format(time.time() - start))
+
+        # also read in the token-sample mapping file
+        self.token_sample_map = torch.load(args.dstore_filename + '_map.pt')
+        self.inv_token_sample_map = np.zeros(self.dstore_size, dtype='i')
+        for k, v in self.token_sample_map.items():
+            self.inv_token_sample_map[v[0]:v[1]] = k
+
+        # store all the top-k retrieved results
+        self.sample_id_cache = []
+        self.dist_cache = []
+        self.knn_cache = []
+        self.project_locality_cache = []
+        self.package_locality_cache = []
+        self.rank_cache = []
+        self.correctness_cache = []
+        self.index_mask_cache = []
+        if args.use_locality:
+            self.modified_dist_cache = []
+
+        # store context vectors for later optimization
+        self.context_cache = []
+        # store lm probs for ppl calc
+        self.lm_prob_cache = []
+        # store original tgt for examples
+        self.original_tgts = []
+
+        # read in the locality feature from npy file
+        if 'test' in args.gen_subset:
+            if 'java' in args.dstore_filename:
+                self.package_locality_features = np.load('examples/language_model/java/java_test_pre.original_path.npy')
+                self.project_locality_features = np.load('examples/language_model/java/testProjects.npy')
+            else:
+                # wikitext
+                # section locality
+                self.package_locality_features = np.load(
+                    'examples/language_model/wikitext103_seg/testtrain.txt.sec.npy')
+                # domain locality
+                self.project_locality_features = np.load(
+                    'examples/language_model/wikitext103_seg/testtrain.txt.dom.npy')
+        elif 'valid' in args.gen_subset:
+            if 'java' in args.dstore_filename:
+                self.package_locality_features = np.load(
+                    'examples/language_model/java/java_validation_pre.original_path.npy')
+                self.project_locality_features = np.load('examples/language_model/java/validProjects.npy')
+            else:
+                # wikitext
+                # section locality
+                self.package_locality_features = np.load(
+                    'examples/language_model/wikitext103_seg/validtrain.txt.sec.npy')
+                # domain locality
+                self.project_locality_features = np.load(
+                    'examples/language_model/wikitext103_seg/validtrain.txt.dom.npy')
+
+        # change dtype to int8 to save space
+        self.package_locality_features = self.package_locality_features.astype('int8')
+        self.project_locality_features = self.project_locality_features.astype('int8')
+
+        # load tuned adaptive model
+        if args.use_locality:
+            if 'java' in args.dstore_filename:
+                self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64, num_outputs=5,
+                                                   context_dim=512).cuda()
+            else:
+                self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64).cuda()
+            self.adaptive_model.load_state_dict(torch.load(args.path.rsplit('/', 1)[0] + '/adaptive_model_weights.pt'))
+            self.adaptive_model.eval()
+            if args.fp16:
+                self.adaptive_model.half()
 
         return index
 
@@ -149,7 +203,7 @@ class KNN_Dstore(object):
         # print(total_block_count)
         return dists, knns
 
-    def get_knn_log_prob(self, queries, tgt, pad_idx, sample_ids=None, task=None):
+    def get_knn_log_prob(self, queries, tgt, pad_idx, sample_ids=None, task=None, lm_probs=None):
         def dist_func(d, k, q, function=None):
             if not function:
                 # Default behavior for L2 metric is to recompute distances.
@@ -179,16 +233,18 @@ class KNN_Dstore(object):
         qshape = queries.shape
         queries = queries.view(-1, qshape[-1])
 
-        # for i in tgt[:, 120]:
-        #     print(task.source_dictionary[i], end=' ')
+        self.original_tgts.append(tgt)
 
         tgt = tgt.contiguous().view(-1)
+        lm_probs = lm_probs.contiguous().view(-1)
+        self.lm_prob_cache.append(lm_probs[tgt != pad_idx].cpu().numpy())
 
         token_sample_ids = sample_ids.repeat(qshape[0], 1).view(-1)
 
         reduced_token_sample_ids = token_sample_ids[tgt != pad_idx].cpu()
         reduced_tgt = tgt[tgt != pad_idx]
 
+        self.sample_id_cache.append(reduced_token_sample_ids.numpy())
         self.context_cache.append(queries[tgt != pad_idx].cpu().numpy())
         dists, knns = self.get_knns(queries[tgt != pad_idx], sample_ids=reduced_token_sample_ids)
 
@@ -205,12 +261,9 @@ class KNN_Dstore(object):
         flat_package_locality = package_locality.flatten()
         package_locality = torch.from_numpy(package_locality).cuda()
 
-        # ret_token_id = self.vals[knns].squeeze(-1)
-        # print(dists[1500][0])
-        # print(task.source_dictionary[ret_token_id[1500][0]])
-
         # save if retrieved is eq to actual tgt?
-        correctness = self.vals[knns].squeeze(-1) == \
+        knn_token_ids = self.vals[knns].squeeze(-1)
+        correctness = knn_token_ids == \
                       np.expand_dims(reduced_tgt.cpu().numpy(), 1).repeat(knns.shape[1], axis=1)
         correctness = correctness.astype("int8")
         flat_correctness = correctness.flatten()
@@ -221,8 +274,10 @@ class KNN_Dstore(object):
 
         flat_rank = np.tile(np.arange(1, dists.shape[1] + 1, dtype='int16'), dists.shape[0])
         flat_dists = dists.detach().cpu().numpy().flatten()
+        flat_knns = knns.flatten()
 
         self.dist_cache.append(flat_dists)
+        self.knn_cache.append(flat_knns)
         self.project_locality_cache.append(flat_project_locality)
         self.package_locality_cache.append(flat_package_locality)
         self.rank_cache.append(flat_rank)
@@ -243,9 +298,16 @@ class KNN_Dstore(object):
                 # probs = utils.log_softmax(locality_feat[0] * (0.0248 * dists) +
                 #                           locality_feat[1] * (0.0385 * dists + 3.9068) +
                 #                           locality_feat[2] * (0.0487 * dists + 6.4349), dim=-1)
-                probs = utils.log_softmax(locality_feat[0] * (0.0223 * dists) +
-                                          locality_feat[1] * (0.0326 * dists + 3.6268) +
-                                          locality_feat[2] * (0.0411 * dists + 5.9197), dim=-1)
+
+                modified_dists = locality_feat[0] * (0.0223 * dists) \
+                                 + locality_feat[1] * (0.0326 * dists + 3.6268) \
+                                 + locality_feat[2] * (0.0411 * dists + 5.9197)
+                # params = self.adaptive_model.model(queries[tgt != pad_idx])
+                #
+                # modified_dists = locality_feat[0] * (params[:, 0][:, None] * dists) + \
+                #                  locality_feat[1] * (params[:, 1][:, None] * dists + params[:, 2][:, None]) + \
+                #                  locality_feat[2] * (params[:, 3][:, None] * dists + params[:, 4][:, None])
+                probs = utils.log_softmax(modified_dists, dim=-1)
             else:
                 # wiki
                 locality_indicator = project_locality + 2 * package_locality
@@ -258,17 +320,28 @@ class KNN_Dstore(object):
                 #                           locality_feat[2] * (1.2383 * dists + -0.2982) +
                 #                           locality_feat[3] * (1.4713 * dists + 3.1667), dim=-1)
 
-                probs = utils.log_softmax(locality_feat[0] * (1.2326 * dists) +
-                                          locality_feat[1] * (1.2459 * dists + 1.0868) +
-                                          locality_feat[2] * (1.2881 * dists + 1.2495) +
-                                          locality_feat[3] * (1.2853 * dists + 1.4641), dim=-1)
+                modified_dists = locality_feat[0] * (1.2326 * dists) \
+                                 + locality_feat[1] * (1.2459 * dists + 1.0868) \
+                                 + locality_feat[2] * (1.2881 * dists + 1.2495) \
+                                 + locality_feat[3] * (1.2853 * dists + 1.4641)
 
+                # params = self.adaptive_model.model(queries[tgt != pad_idx])
+                # modified_dists = locality_feat[0] * (params[:, 0][:, None] * dists) + \
+                #                   locality_feat[1] * (params[:, 1][:, None] * dists + params[:, 2][:, None]) + \
+                #                   locality_feat[2] * (params[:, 3][:, None] * dists + params[:, 4][:, None]) + \
+                #                   locality_feat[3] * (params[:, 5][:, None] * dists + params[:, 6][:, None])
+
+                probs = utils.log_softmax(modified_dists, dim=-1)
+
+            # save modified dists for plotting
+            self.modified_dist_cache.append(modified_dists.cpu().numpy())
 
         else:
             probs = utils.log_softmax(dists, dim=-1)
+        knn_token_ids = torch.from_numpy(knn_token_ids).long().cuda()
 
         # to calculate only the prob on the ground truth tgt token for ppl
-        index_mask = torch.eq(torch.from_numpy(self.vals[knns]).long().cuda().squeeze(-1),
+        index_mask = torch.eq(knn_token_ids,
                               tgt[tgt != pad_idx].unsqueeze(-1)).float()
 
         index_mask[index_mask == 0] = -10000  # for stability
@@ -278,8 +351,23 @@ class KNN_Dstore(object):
 
         # (T_reducedxB)
         yhat_knn_prob = torch.logsumexp(probs + index_mask, dim=-1).clone()
-        full_yhat_knn_prob = torch.full([qshape[0] * qshape[1]], -10000).cuda()
+        full_yhat_knn_prob = torch.full([qshape[0] * qshape[1]], -10000.).cuda()
         full_yhat_knn_prob[tgt != pad_idx] = yhat_knn_prob
 
+        # calc all vocab item
+        vocab_size = len(task.source_dictionary)
+        pad_mask = tgt != pad_idx
+        yhat_knn_token_prob = torch.full([knn_token_ids.shape[0], vocab_size], -10000.).cuda()
+        for i, row in enumerate(knn_token_ids):
+            unique_token_ids = row.unique()
+            mask = torch.eq(knn_token_ids[i].repeat(unique_token_ids.shape[0], 1),
+                            unique_token_ids.unsqueeze(-1)).float()
+            mask[mask == 0] = -10000
+            mask[mask == 1] = 0
+            yhat_knn_token_prob[i, unique_token_ids] = torch.logsumexp(probs[i].repeat(unique_token_ids.shape[0], 1)
+                                                                       + mask, dim=-1).clone()
+        full_yhat_knn_token_prob = torch.full([qshape[0] * qshape[1], vocab_size], -10000.).cuda()
+        full_yhat_knn_token_prob[pad_mask] = yhat_knn_token_prob
+
         # TxBx1
-        return full_yhat_knn_prob.view(qshape[0], qshape[1], 1)
+        return full_yhat_knn_prob.view(qshape[0], qshape[1], 1), full_yhat_knn_token_prob.view(qshape[0], qshape[1], vocab_size)

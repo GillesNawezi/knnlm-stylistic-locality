@@ -25,43 +25,45 @@ correctness = da.from_array(correctness)
 arr_all = da.stack([dists, ranks, locality, correctness], axis=1)
 
 ddf = dd.from_array(arr_all, columns=['dist', 'rank', 'locality', 'correctness'])
-print(ddf)
 
-# rank_filter_mask = ranks <= 64
-#
-# dists = dists[rank_filter_mask]
-# ranks = ranks[rank_filter_mask]
-# locality = locality[rank_filter_mask]
+ddf = ddf[ddf['dist'] >= -15]
+
+ddf = ddf.sort_values(['dist']).reset_index(drop=True)
+
+
+ddf['overall_rank'] = ddf.groupby('locality').cumcount()
+
 
 # dist - acc
-bins = [-10000] + list(range(-50, 0, 1)) + [0]
-ddf['dist_range'] = ddf['dist'].map_partitions(pd.cut, bins)
+bins = list(np.arange(0, 108794826, 50000))
+ddf['rank_range'] = ddf['overall_rank'].map_partitions(pd.cut, bins)
 
-dist_grouped = ddf.groupby(['locality', 'dist_range']).mean().reset_index().compute()
+dist_grouped = ddf.groupby(['locality', 'rank_range']).mean().reset_index().compute()
 
-dist_grouped['dist_right'] = dist_grouped['dist_range'].apply(lambda x: x.right)
+# dist_grouped['dist_right'] = dist_grouped['dist_range'].apply(lambda x: x.right)
 
-# dist_grouped.to_csv('dist_correctness.csv')
+dist_grouped.to_csv('figures/wiki_dist_correctness.csv')
 
-fig, ax = plt.subplots(figsize=(8, 4))
-sns.scatterplot(x='dist_right', y='correctness', hue='locality', data=dist_grouped, s=5)
+
+fig, ax = plt.subplots(figsize=(6, 4))
+sns.lineplot(x='dist', y='correctness', hue='locality', data=dist_grouped)
 
 plt.savefig('figures/wiki_avg_correctness_by_dist_1024.pdf')
 
+exit()
+
 # rank - acc
 grouped = ddf.groupby(['locality', 'rank']).mean().reset_index().compute()
+grouped.to_csv('figures/wiki_rank.csv')
 
-print(grouped)
-
-fig, ax = plt.subplots(figsize=(8, 4))
+fig, ax = plt.subplots(figsize=(6, 4))
 sns.scatterplot(x='rank', y='correctness', hue='locality', data=grouped, s=5)
 
 plt.savefig('figures/wiki_avg_correctness_by_rank_1024.pdf')
 
 # rank - dist
-print(grouped)
 
-fig, ax = plt.subplots(figsize=(8, 4))
+fig, ax = plt.subplots(figsize=(6, 4))
 sns.scatterplot(x='rank', y='dist', hue='locality', data=grouped, s=5)
 
 plt.savefig('figures/wiki_avg_dist_by_rank_1024.pdf')

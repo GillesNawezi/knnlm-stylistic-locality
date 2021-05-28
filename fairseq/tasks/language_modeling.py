@@ -119,6 +119,11 @@ class LanguageModelingTask(FairseqTask):
         parser.add_argument('--use-locality', default=False, action='store_true',
                             help='use locality feature')
 
+        ## save topk predictions
+        parser.add_argument('--save-top-pred', default=False, action='store_true',
+                            help='save top k predictions')
+
+
         # fmt: on
 
     def __init__(self, args, dictionary, output_dictionary=None, targets=None):

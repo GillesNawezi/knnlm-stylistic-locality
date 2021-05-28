@@ -194,6 +194,7 @@ def main(parsed_args):
             else:
                 hypos = scorer.generate(models, sample)
             gen_timer.stop(sample['ntokens'])
+
             for i, hypos_i in enumerate(hypos):
                 hypo = hypos_i[0]
                 sample_id = sample['id'][i]
@@ -303,13 +304,33 @@ def main(parsed_args):
             os.makedirs('saved_tensors/' + dir_name)
 
         split_name = args.gen_subset
-        np.save('saved_tensors/{}/{}_proj_dist_cache.npy'.format(dir_name, split_name), np.concatenate(knn_dstore.dist_cache))
-        np.save('saved_tensors/{}/{}_proj_locality_cache.npy'.format(dir_name, split_name), np.concatenate(knn_dstore.project_locality_cache))
-        np.save('saved_tensors/{}/{}_pkg_locality_cache.npy'.format(dir_name, split_name), np.concatenate(knn_dstore.package_locality_cache))
-        np.save('saved_tensors/{}/{}_proj_rank_cache.npy'.format(dir_name, split_name), np.concatenate(knn_dstore.rank_cache))
-        np.save('saved_tensors/{}/{}_proj_correctness_cache.npy'.format(dir_name, split_name), np.concatenate(knn_dstore.correctness_cache))
-        np.save('saved_tensors/{}/{}_proj_index_mask_cache.npy'.format(dir_name, split_name), np.concatenate(knn_dstore.index_mask_cache))
-        np.save('saved_tensors/{}/{}_context_cache.npy'.format(dir_name, split_name), np.concatenate(knn_dstore.context_cache))
+        # save dictionary
+        torch.save(task.source_dictionary, 'saved_tensors/{}/dictionary.pt'.format(dir_name))
+        torch.save(knn_dstore.original_tgts, 'saved_tensors/{}/{}_original_tgts_cache.npy'.format(dir_name, split_name))
+        np.save('saved_tensors/{}/{}_sample_id_cache.npy'.format(dir_name, split_name),
+                np.concatenate(knn_dstore.sample_id_cache))
+        np.save('saved_tensors/{}/{}_knn_cache.npy'.format(dir_name, split_name),
+                np.concatenate(knn_dstore.knn_cache))
+        np.save('saved_tensors/{}/{}_proj_dist_cache.npy'.format(dir_name, split_name),
+                np.concatenate(knn_dstore.dist_cache))
+        np.save('saved_tensors/{}/{}_proj_locality_cache.npy'.format(dir_name, split_name),
+                np.concatenate(knn_dstore.project_locality_cache))
+        np.save('saved_tensors/{}/{}_pkg_locality_cache.npy'.format(dir_name, split_name),
+                np.concatenate(knn_dstore.package_locality_cache))
+        np.save('saved_tensors/{}/{}_proj_rank_cache.npy'.format(dir_name, split_name),
+                np.concatenate(knn_dstore.rank_cache))
+        np.save('saved_tensors/{}/{}_proj_correctness_cache.npy'.format(dir_name, split_name),
+                np.concatenate(knn_dstore.correctness_cache))
+        np.save('saved_tensors/{}/{}_proj_index_mask_cache.npy'.format(dir_name, split_name),
+                np.concatenate(knn_dstore.index_mask_cache))
+        np.save('saved_tensors/{}/{}_context_cache.npy'.format(dir_name, split_name),
+                np.concatenate(knn_dstore.context_cache))
+        np.save('saved_tensors/{}/{}_lm_prob_cache.npy'.format(dir_name, split_name),
+                np.concatenate(knn_dstore.lm_prob_cache))
+
+        if args.use_locality:
+            np.save('saved_tensors/{}/{}_modified_dist_cache.npy'.format(dir_name, split_name),
+                    np.concatenate(knn_dstore.modified_dist_cache))
 
     if args.output_word_stats:
         for ws in sorted(word_stats.values(), key=lambda x: x.count, reverse=True):

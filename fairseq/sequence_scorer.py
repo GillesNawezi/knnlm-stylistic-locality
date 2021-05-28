@@ -10,6 +10,7 @@ import time
 
 from fairseq import utils
 from fairseq.data import Dictionary
+from fairseq.utils import get_mrr
 
 
 class SequenceScorer(object):
@@ -22,6 +23,8 @@ class SequenceScorer(object):
         assert self.softmax_batch > 0
         self.compute_alignment = compute_alignment
         self.args = args
+        if self.args.save_top_pred:
+            self.top_preds = []
 
     @torch.no_grad()
     def generate(self, models, sample, **kwargs):
@@ -72,6 +75,7 @@ class SequenceScorer(object):
                 attn = attn.get('attn', None)
             batched = batch_for_softmax(decoder_out, orig_target)
             probs, idx = None, 0
+
             for i, (bd, tgt, is_single) in enumerate(batched):
                 sample['target'] = tgt
                 curr_prob = model.get_normalized_probs(bd, log_probs=len(models) == 1, sample=sample).data
@@ -88,6 +92,12 @@ class SequenceScorer(object):
                     idx = end
                 sample['target'] = orig_target
 
+            _, original_topk = torch.topk(curr_prob, k=10, dim=-1)
+            # print(torch.topk(curr_prob, k=10,largest=False)[0])
+
+            # if self.args.save_top_pred and len(models) == 1:
+            #     self.top_preds.append()
+
             probs = probs.view(sample['target'].shape)
 
             if 'knn_dstore' in kwargs:
@@ -99,19 +109,27 @@ class SequenceScorer(object):
 
                 # print(sample['id'].shape)
                 # print(queries.shape)
-                yhat_knn_prob = dstore.get_knn_log_prob(
-                        queries,
-                        orig_target.permute(1, 0),
-                        sample_ids=sample['id'],
-                        pad_idx=self.pad,
-                        task=kwargs['task'])
+                yhat_knn_prob, yhat_knn_vocab_prob = dstore.get_knn_log_prob(
+                    queries,
+                    orig_target.permute(1, 0),
+                    sample_ids=sample['id'],
+                    pad_idx=self.pad,
+                    task=kwargs['task'],
+                    lm_probs=probs.permute(1, 0))
+
                 yhat_knn_prob = yhat_knn_prob.permute(1, 0, 2).squeeze(-1)
+                yhat_knn_vocab_prob = yhat_knn_vocab_prob.permute(1, 0, 2)
                 if self.args.fp16:
                     yhat_knn_prob = yhat_knn_prob.half()
+                    yhat_knn_vocab_prob = yhat_knn_vocab_prob.half()
                     probs = probs.half()
 
                 probs = combine_knn_and_vocab_probs(
-                            yhat_knn_prob, probs, self.args.lmbda)
+                    yhat_knn_prob, probs, self.args.lmbda)
+
+                vocab_probs = combine_knn_and_vocab_probs(yhat_knn_vocab_prob, curr_prob, self.args.lmbda)
+
+                _, after_topk = torch.topk(vocab_probs, k=10, dim=-1)
 
             if avg_probs is None:
                 avg_probs = probs
@@ -139,6 +157,12 @@ class SequenceScorer(object):
             tgt_len = ref.numel()
             avg_probs_i = avg_probs[i][start_idxs[i]:start_idxs[i] + tgt_len]
             score_i = avg_probs_i.sum() / tgt_len
+
+            pad_mask = sample['target'][i, start_idxs[i]:] != self.pad
+            original_mrr = get_mrr(original_topk[i][pad_mask], ref)
+            mrr = get_mrr(after_topk[i][pad_mask], ref)
+            print(original_mrr, mrr)
+
             if avg_attn is not None:
                 avg_attn_i = avg_attn[i]
                 if self.compute_alignment:
@@ -159,6 +183,7 @@ class SequenceScorer(object):
                 'attention': avg_attn_i,
                 'alignment': alignment,
                 'positional_scores': avg_probs_i,
-                'dstore_keys': decoder_out[1][self.args.knn_keytype][start_idxs[i]:,i,:] if self.args.save_knnlm_dstore else None,
+                'dstore_keys': decoder_out[1][self.args.knn_keytype][start_idxs[i]:, i,
+                               :] if self.args.save_knnlm_dstore else None,
             }])
         return hypos
