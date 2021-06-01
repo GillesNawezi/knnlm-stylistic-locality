@@ -91,12 +91,12 @@ class WeightedDist(torch.nn.Module):
 
 num_retrieved = 1024
 
-context_vecs = np.load('/dev/shm/frank/valid_context_cache.npy')
-dists = np.load('/dev/shm/frank/valid_proj_dist_cache.npy').reshape(-1, num_retrieved)
-pkg_locality = np.load('/dev/shm/frank/valid_pkg_locality_cache.npy').reshape(-1, num_retrieved)
-proj_locality = np.load('/dev/shm/frank/valid_proj_locality_cache.npy').reshape(-1, num_retrieved)
-index_masks = np.load('/dev/shm/frank/valid_proj_index_mask_cache.npy').reshape(-1, num_retrieved)
-# lm_probs = np.load('/dev/shm/frank/valid_lm_prob_cache.npy', mmap_mode='r')
+context_vecs = np.load('/dev/shm//valid_context_cache.npy')
+dists = np.load('/dev/shm//valid_proj_dist_cache.npy').reshape(-1, num_retrieved)
+pkg_locality = np.load('/dev/shm//valid_pkg_locality_cache.npy').reshape(-1, num_retrieved)
+proj_locality = np.load('/dev/shm//valid_proj_locality_cache.npy').reshape(-1, num_retrieved)
+index_masks = np.load('/dev/shm//valid_proj_index_mask_cache.npy').reshape(-1, num_retrieved)
+# lm_probs = np.load('/dev/shm//valid_lm_prob_cache.npy', mmap_mode='r')
 
 
 context_vecs = torch.from_numpy(context_vecs).float()
@@ -106,12 +106,12 @@ proj_locality = torch.from_numpy(proj_locality)
 index_masks = torch.from_numpy(index_masks)
 
 
-test_context_vecs = np.load('/dev/shm/frank/test_context_cache.npy')
-test_dists = np.load('/dev/shm/frank/test_proj_dist_cache.npy').reshape(-1, num_retrieved)
-test_pkg_locality = np.load('/dev/shm/frank/test_pkg_locality_cache.npy').reshape(-1, num_retrieved)
-test_proj_locality = np.load('/dev/shm/frank/test_proj_locality_cache.npy').reshape(-1, num_retrieved)
-test_index_masks = np.load('/dev/shm/frank/test_proj_index_mask_cache.npy').reshape(-1, num_retrieved)
-test_lm_probs = np.load('/dev/shm/frank/test_lm_prob_cache.npy')
+test_context_vecs = np.load('/dev/shm//test_context_cache.npy')
+test_dists = np.load('/dev/shm//test_proj_dist_cache.npy').reshape(-1, num_retrieved)
+test_pkg_locality = np.load('/dev/shm//test_pkg_locality_cache.npy').reshape(-1, num_retrieved)
+test_proj_locality = np.load('/dev/shm//test_proj_locality_cache.npy').reshape(-1, num_retrieved)
+test_index_masks = np.load('/dev/shm//test_proj_index_mask_cache.npy').reshape(-1, num_retrieved)
+test_lm_probs = np.load('/dev/shm//test_lm_prob_cache.npy')
 
 test_context_vecs = torch.from_numpy(test_context_vecs).float()
 test_dists = torch.from_numpy(test_dists).float()

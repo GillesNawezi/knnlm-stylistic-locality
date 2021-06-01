@@ -26,23 +26,21 @@ arr_all = da.stack([dists, ranks, locality, correctness], axis=1)
 ddf = dd.from_array(arr_all, columns=['dist', 'rank', 'locality', 'correctness'])
 ddf = ddf[ddf['dist'] >= -400]
 
-print(ddf.groupby('locality').count().compute())
-exit()
+# print(ddf.groupby('locality').count().compute())
+# exit()
 print('df build complete')
 
-# rank_filter_mask = ranks <= 64
-#
-# dists = dists[rank_filter_mask]
-# ranks = ranks[rank_filter_mask]
-# locality = locality[rank_filter_mask]
+ddf = ddf.sort_values(['dist']).reset_index(drop=True)
+
+ddf['overall_rank'] = ddf.groupby('locality').cumcount()
 
 # dist - acc
-bins = [-10000] + list(range(-500, 0, 10)) + [0]
-ddf['dist_range'] = ddf['dist'].map_partitions(pd.cut, bins)
+# bins = [-10000] + list(range(-500, 0, 10)) + [0]
+bins = list(np.arange(0, 2727431522, 100000))
 
-dist_grouped = ddf.groupby(['locality', 'dist_range']).mean().reset_index().compute()
+ddf['rank_range'] = ddf['overall_rank'].map_partitions(pd.cut, bins)
 
-dist_grouped['dist_right'] = dist_grouped['dist_range'].apply(lambda x: x.right)
+dist_grouped = ddf.groupby(['locality', 'rank_range']).mean().reset_index().compute()
 
 dist_grouped.to_csv('figures/java_dist_correctness.csv')
 
@@ -51,6 +49,7 @@ sns.scatterplot(x='dist_right', y='correctness', hue='locality', data=dist_group
 
 plt.savefig('figures/java_avg_correctness_by_dist_1024.pdf')
 
+exit()
 # rank - acc
 grouped = ddf.groupby(['locality', 'rank']).mean().reset_index().compute()
 

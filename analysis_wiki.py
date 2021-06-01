@@ -35,7 +35,7 @@ ddf['overall_rank'] = ddf.groupby('locality').cumcount()
 
 
 # dist - acc
-bins = list(np.arange(0, 108794826, 50000))
+bins = list(np.arange(0, 108794826, 100000))
 ddf['rank_range'] = ddf['overall_rank'].map_partitions(pd.cut, bins)
 
 dist_grouped = ddf.groupby(['locality', 'rank_range']).mean().reset_index().compute()
@@ -50,7 +50,6 @@ sns.lineplot(x='dist', y='correctness', hue='locality', data=dist_grouped)
 
 plt.savefig('figures/wiki_avg_correctness_by_dist_1024.pdf')
 
-exit()
 
 # rank - acc
 grouped = ddf.groupby(['locality', 'rank']).mean().reset_index().compute()

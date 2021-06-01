@@ -203,7 +203,8 @@ class KNN_Dstore(object):
         # print(total_block_count)
         return dists, knns
 
-    def get_knn_log_prob(self, queries, tgt, pad_idx, sample_ids=None, task=None, lm_probs=None):
+    def get_knn_log_prob(self, queries, tgt, pad_idx, sample_ids=None, task=None,
+                         lm_probs=None, calc_vocab_prob=False):
         def dist_func(d, k, q, function=None):
             if not function:
                 # Default behavior for L2 metric is to recompute distances.
@@ -354,20 +355,24 @@ class KNN_Dstore(object):
         full_yhat_knn_prob = torch.full([qshape[0] * qshape[1]], -10000.).cuda()
         full_yhat_knn_prob[tgt != pad_idx] = yhat_knn_prob
 
-        # calc all vocab item
-        vocab_size = len(task.source_dictionary)
-        pad_mask = tgt != pad_idx
-        yhat_knn_token_prob = torch.full([knn_token_ids.shape[0], vocab_size], -10000.).cuda()
-        for i, row in enumerate(knn_token_ids):
-            unique_token_ids = row.unique()
-            mask = torch.eq(knn_token_ids[i].repeat(unique_token_ids.shape[0], 1),
-                            unique_token_ids.unsqueeze(-1)).float()
-            mask[mask == 0] = -10000
-            mask[mask == 1] = 0
-            yhat_knn_token_prob[i, unique_token_ids] = torch.logsumexp(probs[i].repeat(unique_token_ids.shape[0], 1)
-                                                                       + mask, dim=-1).clone()
-        full_yhat_knn_token_prob = torch.full([qshape[0] * qshape[1], vocab_size], -10000.).cuda()
-        full_yhat_knn_token_prob[pad_mask] = yhat_knn_token_prob
+        if calc_vocab_prob:
+            # calc all vocab item
+            vocab_size = len(task.source_dictionary)
+            pad_mask = tgt != pad_idx
+            yhat_knn_token_prob = torch.full([knn_token_ids.shape[0], vocab_size], -10000.).cuda()
+            for i, row in enumerate(knn_token_ids):
+                unique_token_ids = row.unique()
+                mask = torch.eq(knn_token_ids[i].repeat(unique_token_ids.shape[0], 1),
+                                unique_token_ids.unsqueeze(-1)).float()
+                mask[mask == 0] = -10000
+                mask[mask == 1] = 0
+                yhat_knn_token_prob[i, unique_token_ids] = torch.logsumexp(probs[i].repeat(unique_token_ids.shape[0], 1)
+                                                                           + mask, dim=-1).clone()
+            full_yhat_knn_token_prob = torch.full([qshape[0] * qshape[1], vocab_size], -10000.).cuda()
+            full_yhat_knn_token_prob[pad_mask] = yhat_knn_token_prob
 
-        # TxBx1
-        return full_yhat_knn_prob.view(qshape[0], qshape[1], 1), full_yhat_knn_token_prob.view(qshape[0], qshape[1], vocab_size)
+            # TxBx1
+            return full_yhat_knn_prob.view(qshape[0], qshape[1], 1), full_yhat_knn_token_prob.view(qshape[0], qshape[1], vocab_size)
+        else:
+            # TxBx1
+            return full_yhat_knn_prob.view(qshape[0], qshape[1], 1)

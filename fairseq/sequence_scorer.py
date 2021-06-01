@@ -109,27 +109,37 @@ class SequenceScorer(object):
 
                 # print(sample['id'].shape)
                 # print(queries.shape)
-                yhat_knn_prob, yhat_knn_vocab_prob = dstore.get_knn_log_prob(
+                yhat_knn_prob = dstore.get_knn_log_prob(
                     queries,
                     orig_target.permute(1, 0),
                     sample_ids=sample['id'],
                     pad_idx=self.pad,
                     task=kwargs['task'],
-                    lm_probs=probs.permute(1, 0))
+                    lm_probs=probs.permute(1, 0),
+                    calc_vocab_prob=False)
+
+                # yhat_knn_prob, yhat_knn_vocab_prob = dstore.get_knn_log_prob(
+                #     queries,
+                #     orig_target.permute(1, 0),
+                #     sample_ids=sample['id'],
+                #     pad_idx=self.pad,
+                #     task=kwargs['task'],
+                #     lm_probs=probs.permute(1, 0),
+                #     calc_vocab_prob=True)
 
                 yhat_knn_prob = yhat_knn_prob.permute(1, 0, 2).squeeze(-1)
-                yhat_knn_vocab_prob = yhat_knn_vocab_prob.permute(1, 0, 2)
+                # yhat_knn_vocab_prob = yhat_knn_vocab_prob.permute(1, 0, 2)
                 if self.args.fp16:
                     yhat_knn_prob = yhat_knn_prob.half()
-                    yhat_knn_vocab_prob = yhat_knn_vocab_prob.half()
+                    # yhat_knn_vocab_prob = yhat_knn_vocab_prob.half()
                     probs = probs.half()
 
                 probs = combine_knn_and_vocab_probs(
                     yhat_knn_prob, probs, self.args.lmbda)
 
-                vocab_probs = combine_knn_and_vocab_probs(yhat_knn_vocab_prob, curr_prob, self.args.lmbda)
-
-                _, after_topk = torch.topk(vocab_probs, k=10, dim=-1)
+                # vocab_probs = combine_knn_and_vocab_probs(yhat_knn_vocab_prob, curr_prob, self.args.lmbda)
+                #
+                # _, after_topk = torch.topk(vocab_probs, k=10, dim=-1)
 
             if avg_probs is None:
                 avg_probs = probs
@@ -158,10 +168,10 @@ class SequenceScorer(object):
             avg_probs_i = avg_probs[i][start_idxs[i]:start_idxs[i] + tgt_len]
             score_i = avg_probs_i.sum() / tgt_len
 
-            pad_mask = sample['target'][i, start_idxs[i]:] != self.pad
-            original_mrr = get_mrr(original_topk[i][pad_mask], ref)
-            mrr = get_mrr(after_topk[i][pad_mask], ref)
-            print(original_mrr, mrr)
+            # pad_mask = sample['target'][i, start_idxs[i]:] != self.pad
+            # original_mrr = get_mrr(original_topk[i][pad_mask], ref)
+            # mrr = get_mrr(after_topk[i][pad_mask], ref)
+            # print(original_mrr, mrr)
 
             if avg_attn is not None:
                 avg_attn_i = avg_attn[i]

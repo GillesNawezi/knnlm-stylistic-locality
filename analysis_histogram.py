@@ -3,9 +3,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-dists = np.load('/node09_data/frank/test_dist_cache.npy')
-ranks = np.load('/node09_data/frank/test_rank_cache.npy')
-locality = np.load('/node09_data/frank/test_locality_cache.npy')
+dists = np.load('/node09_data//test_dist_cache.npy')
+ranks = np.load('/node09_data//test_rank_cache.npy')
+locality = np.load('/node09_data//test_locality_cache.npy')
 
 rank_filter_mask = ranks <= 100
 
