@@ -101,17 +101,15 @@ sample_ids = test_sample_ids[idxs]
 
 print(sample_ids)
 
-print(docs[sample_ids[999]])
+print(docs[sample_ids[989]])
 
-print(orig_knn_probs[idxs][999])
-print(diffs[999])
-print("TARGET WORD", dictionary[tgts[idxs[999]].item()])
+print(orig_knn_probs[idxs][989])
+print(diffs[989])
+print("TARGET WORD", dictionary[tgts[idxs[989]].item()])
 print('retrieved:')
 
-
-
-for i, d, md in zip(test_knns[idxs, :5][999], orig_probs[idxs, :5][999],
-                    probs[idxs, :5][999]):
+for i, d, md in zip(test_knns[idxs, :5][989], orig_probs[idxs, :5][989],
+                    probs[idxs, :5][989]):
     print(docs[inv_token_sample_map[i]])
     print(dictionary[int(vals[i])])
     print(d)

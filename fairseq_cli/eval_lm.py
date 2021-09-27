@@ -161,7 +161,7 @@ def main(parsed_args):
                 print('Saving fp16')
                 dstore_keys = np.memmap(args.dstore_mmap + '_keys.npy', dtype=np.float16, mode='w+',
                                         shape=(args.dstore_size, args.decoder_embed_dim))
-                dstore_vals = np.memmap(args.dstore_mmap + '_vals.npy', dtype=np.int16, mode='w+',
+                dstore_vals = np.memmap(args.dstore_mmap + '_vals.npy', dtype=np.int, mode='w+',
                                         shape=(args.dstore_size, 1))
             else:
                 print('Saving fp32')

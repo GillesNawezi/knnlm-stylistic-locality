@@ -62,11 +62,11 @@ class KNN_Dstore(object):
         index.nprobe = args.probe
 
         if args.dstore_fp16:
-            print('Keys are fp16 and vals are int16')
+            print('Keys are fp16 and vals are int64')
             if not args.no_load_keys:
                 self.keys = np.memmap(args.dstore_filename + '_keys.npy', dtype=np.float16, mode='r',
                                       shape=(self.dstore_size, self.dimension))
-            self.vals = np.memmap(args.dstore_filename + '_vals.npy', dtype=np.int16, mode='r',
+            self.vals = np.memmap(args.dstore_filename + '_vals.npy', dtype=np.int, mode='r',
                                   shape=(self.dstore_size, 1))
         else:
             print('Keys are fp32 and vals are int64')
@@ -94,11 +94,11 @@ class KNN_Dstore(object):
 
             del self.vals
             self.vals_from_memmap = np.memmap(args.dstore_filename + '_vals.npy',
-                                              dtype=np.int16 if args.dstore_fp16 else np.int, mode='r',
+                                              dtype=np.int, mode='r',
                                               shape=(self.dstore_size, 1))
-            self.vals = np.zeros((self.dstore_size, 1), dtype=np.int16 if args.dstore_fp16 else np.int)
+            self.vals = np.zeros((self.dstore_size, 1), dtype=np.int)
             self.vals = self.vals_from_memmap[:]
-            self.vals = self.vals.astype(np.int16 if args.dstore_fp16 else np.int)
+            self.vals = self.vals.astype(np.int)
             print('Loading to memory took {} s'.format(time.time() - start))
 
         # also read in the token-sample mapping file
