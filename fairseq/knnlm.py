@@ -66,7 +66,7 @@ class KNN_Dstore(object):
             if not args.no_load_keys:
                 self.keys = np.memmap(args.dstore_filename + '_keys.npy', dtype=np.float16, mode='r',
                                       shape=(self.dstore_size, self.dimension))
-            self.vals = np.memmap(args.dstore_filename + '_vals.npy', dtype=np.int, mode='r',
+            self.vals = np.memmap(args.dstore_filename + '_vals.npy', dtype=np.int16, mode='r',
                                   shape=(self.dstore_size, 1))
         else:
             print('Keys are fp32 and vals are int64')
@@ -375,4 +375,4 @@ class KNN_Dstore(object):
             return full_yhat_knn_prob.view(qshape[0], qshape[1], 1), full_yhat_knn_token_prob.view(qshape[0], qshape[1], vocab_size)
         else:
             # TxBx1
-            return full_yhat_knn_prob.view(qshape[0], qshape[1], 1)
+            return full_yhat_knn_prob.view(qshape[0], qshape[1], 1), None

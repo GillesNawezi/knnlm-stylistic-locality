@@ -172,6 +172,7 @@ def main(parsed_args):
 
         dstore_idx = 0
 
+        prediction_save = {'topk': [], 'ref': []}
         for ex_i, sample in enumerate(t):
             if 'net_input' not in sample:
                 continue
@@ -179,14 +180,6 @@ def main(parsed_args):
             # if ex_i > 300:
             #     continue
 
-            # if torch.sum(sample['net_input']['src_tokens'] == bos_idx).item() != sample['net_input']['src_tokens'].shape[0]:
-            #     print(sample['net_input']['src_tokens'])
-            # for x in sample['net_input']['src_tokens']:
-            #     torch.set_printoptions(profile="full")
-            #     print(x)  # prints the whole tensor
-            #     torch.set_printoptions(profile="default")  # reset
-            #     exit()
-            # continue
             sample = utils.move_to_cuda(sample) if use_cuda else sample
             gen_timer.start()
             if args.knnlm:
@@ -221,11 +214,13 @@ def main(parsed_args):
 
                     dstore_idx += actual_size
 
-
                 tokens = hypo['tokens']
                 tgt_len = tokens.numel()
                 pos_scores = hypo['positional_scores'].float()
+                predicted_topk = hypo['predicted_topk']
 
+                prediction_save['topk'].append(predicted_topk)
+                prediction_save['ref'].append(tokens)
                 if args.add_bos_token:
                     assert hypo['tokens'][0].item() == task.target_dictionary.bos()
                     tokens = tokens[1:]
@@ -298,6 +293,8 @@ def main(parsed_args):
         avg_nll_loss, 2 ** avg_nll_loss
     ))
 
+    # save prediction result
+    torch.save(prediction_save, 'prediction.pt')
     if args.knnlm:
         dir_name = args.dstore_filename.split('/')[-2]
         if not os.path.exists('saved_tensors/' + dir_name):
