@@ -205,7 +205,7 @@ def main(parsed_args):
                         dstore_keys[dstore_idx:actual_size + dstore_idx] = hypo['dstore_keys'][:actual_size, :].view(
                             -1, args.decoder_embed_dim).cpu().numpy().astype(np.float16)
                         dstore_vals[dstore_idx:actual_size + dstore_idx] = hypo['tokens'].view(
-                            -1, 1).cpu().numpy().astype(np.int16)
+                            -1, 1).cpu().numpy().astype(np.int)
                     else:
                         dstore_keys[dstore_idx:actual_size + dstore_idx] = hypo['dstore_keys'][:actual_size, :].view(
                             -1, args.decoder_embed_dim).cpu().numpy().astype(np.float32)
