@@ -60,7 +60,7 @@ python eval_lm.py data-bin/java-huge-bpe-2000-half \
     --k 1024 --lmbda 0.25 --dstore-size 4511244 --knn-keytype last_ffn_input \
     --probe 32 --knnlm --fp16 --dstore-fp16
 
-# eval test with valid knn + locality
+# eval valid with valid knn + locality
 python eval_lm.py data-bin/java-huge-bpe-2000-half \
     --path checkpoints/java-huge-bpe-2000/checkpoint_best.pt \
     --sample-break-mode eos --max-tokens 3072 \
