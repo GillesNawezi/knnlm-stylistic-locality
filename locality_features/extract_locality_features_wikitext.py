@@ -1,4 +1,7 @@
 import numpy as np
+import pathlib
+
+global_path = str(pathlib.Path(__file__).parent.parent.resolve())
 
 
 def generate_article_locality_matrix(filename):
@@ -22,7 +25,9 @@ def generate_article_locality_matrix(filename):
     np.save(filename + '.npy', locality)
 
 
-# generate_article_locality_matrix('../examples/language_model/wikitext103_seg/test.txt.docid')
+generate_article_locality_matrix(global_path + '/examples/language_model/wikitext103_split/wiki_test_tokens')
+generate_article_locality_matrix(global_path + '/examples/language_model/wikitext103_split/wiki_train_tokens')
+generate_article_locality_matrix(global_path + '/examples/language_model/wikitext103_split/wiki_valid_tokens')
 
 
 def generate_section_locality_matrix(split_name):
@@ -74,6 +79,6 @@ def generate_domain_locality_matrix(split_name):
     np.save('examples/language_model/wikitext103_seg/{}train.txt.dom.npy'.format(split_name), locality)
 
 
-generate_section_locality_matrix('valid')
-generate_domain_locality_matrix('valid')
+#generate_section_locality_matrix('valid')
+#generate_domain_locality_matrix('valid')
 

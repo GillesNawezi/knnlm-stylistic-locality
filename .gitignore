@@ -133,3 +133,9 @@ data-bin/
 
 # Experimental Folder
 experimental/*
+
+#example folders
+examples/language_model/wikitext103_split
+examples/language_model/wikitext103_seg
+notebooks/input
+notebooks/output
