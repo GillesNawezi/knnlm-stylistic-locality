@@ -127,6 +127,7 @@ class KNN_Dstore(object):
         self.original_tgts = []
 
         # read in the locality feature from npy file
+        print(f"Subset: {args.gen_subset}")
         if 'test' in args.gen_subset:
             if 'java' in args.dstore_filename:
                 self.package_locality_features = np.load('examples/language_model/java/java_test_pre.original_path.npy')
@@ -135,10 +136,10 @@ class KNN_Dstore(object):
                 # wikitext
                 # section locality
                 self.package_locality_features = np.load(
-                    'examples/language_model/wikitext103_seg/testtrain.txt.sec.npy')
+                    f'examples/language_model/wikitext103_seg/{args.gen_subset}train.txt.sec.npy')
                 # domain locality
                 self.project_locality_features = np.load(
-                    'examples/language_model/wikitext103_seg/testtrain.txt.dom.npy')
+                    f'examples/language_model/wikitext103_seg/{args.gen_subset}train.txt.dom.npy')
         elif 'valid' in args.gen_subset:
             if 'java' in args.dstore_filename:
                 self.package_locality_features = np.load(
@@ -148,16 +149,18 @@ class KNN_Dstore(object):
                 # wikitext
                 # section locality
                 self.package_locality_features = np.load(
-                    'examples/language_model/wikitext103_seg/validtrain.txt.sec.npy')
+                    f'examples/language_model/wikitext103_seg/{args.gen_subset}train.txt.sec.npy')
                 # domain locality
                 self.project_locality_features = np.load(
-                    'examples/language_model/wikitext103_seg/validtrain.txt.dom.npy')
+                    f'examples/language_model/wikitext103_seg/{args.gen_subset}train.txt.dom.npy')
 
         # change dtype to int8 to save space
         self.package_locality_features = self.package_locality_features.astype('int8')
         self.project_locality_features = self.project_locality_features.astype('int8')
 
         # load tuned adaptive model
+        print(args.path.rsplit('/', 1)[0] + '/adaptive_model_weights.pt')
+        
         if args.use_locality:
             if 'java' in args.dstore_filename:
                 self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64, num_outputs=5,
@@ -168,6 +171,7 @@ class KNN_Dstore(object):
             self.adaptive_model.eval()
             if args.fp16:
                 self.adaptive_model.half()
+            print("Loaded Adaptive Model")
 
         return index
 
@@ -201,6 +205,7 @@ class KNN_Dstore(object):
         # print(dists.shape)
         # print(knns.shape)
         # print(total_block_count)
+        # print(dists,knns)
         return dists, knns
 
     def get_knn_log_prob(self, queries, tgt, pad_idx, sample_ids=None, task=None,
@@ -315,16 +320,24 @@ class KNN_Dstore(object):
 
                 locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=4).permute(2, 0, 1)
 
+                print("Load custom weights")
+                params = self.adaptive_model.model(queries[tgt != pad_idx])
+                
+                modified_dists = locality_feat[0] * (params[:, 0][:, None] * dists) + \
+                                 locality_feat[1] * (params[:, 1][:, None] * dists + params[:, 2][:, None]) + \
+                                 locality_feat[2] * (params[:, 3][:, None] * dists + params[:, 4][:, None]) + \
+                                 locality_feat[3] * (params[:, 5][:, None] * dists + params[:, 6][:, None])
+
                 # optimized on test
                 # probs = utils.log_softmax(locality_feat[0] * (1.2721 * dists) +
                 #                           locality_feat[1] * (1.3063 * dists + 1.0640) +
                 #                           locality_feat[2] * (1.2383 * dists + -0.2982) +
                 #                           locality_feat[3] * (1.4713 * dists + 3.1667), dim=-1)
 
-                modified_dists = locality_feat[0] * (1.2326 * dists) \
-                                 + locality_feat[1] * (1.2459 * dists + 1.0868) \
-                                 + locality_feat[2] * (1.2881 * dists + 1.2495) \
-                                 + locality_feat[3] * (1.2853 * dists + 1.4641)
+                #modified_dists = locality_feat[0] * (1.2326 * dists) \
+                #                 + locality_feat[1] * (1.2459 * dists + 1.0868) \
+                #                 + locality_feat[2] * (1.2881 * dists + 1.2495) \
+                #                 + locality_feat[3] * (1.2853 * dists + 1.4641)
 
                 # params = self.adaptive_model.model(queries[tgt != pad_idx])
                 # modified_dists = locality_feat[0] * (params[:, 0][:, None] * dists) + \

@@ -1,0 +1,9 @@
+from convokit import Corpus, download
+import pathlib
+
+
+global_path = str(pathlib.Path(__file__).parent.resolve())
+corpus = Corpus(filename=download("wikipedia-politeness-corpus"))
+df = corpus.get_utterances_dataframe()
+
+df.to_pickle(global_path+ "/datasets/prepro/" + "politeness_wiki_stanford.pklxz",compression="xz")

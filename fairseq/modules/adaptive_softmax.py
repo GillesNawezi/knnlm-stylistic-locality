@@ -60,8 +60,13 @@ class AdaptiveSoftmax(nn.Module):
         if vocab_size > cutoff[-1]:
             cutoff = cutoff + [vocab_size]
         else:
-            assert vocab_size == cutoff[
-                -1], 'cannot specify cutoff larger than vocab size'
+            if len(cutoff)==2:
+                cutoff[-1] = vocab_size
+                cutoff[0] = round(vocab_size / 2)
+                print(f"Changed cut off to: {cutoff}")
+            else:
+                assert vocab_size == cutoff[
+                    -1], 'cannot specify cutoff larger than vocab size'
 
         output_dim = cutoff[0] + len(cutoff) - 1
 

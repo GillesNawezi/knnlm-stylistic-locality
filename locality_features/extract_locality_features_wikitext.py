@@ -1,7 +1,8 @@
 import numpy as np
 import pathlib
+from tqdm import tqdm
 
-global_path = str(pathlib.Path(__file__).parent.parent.resolve())
+
 
 
 def generate_article_locality_matrix(filename):
@@ -24,13 +25,8 @@ def generate_article_locality_matrix(filename):
     print(locality.sum())
     np.save(filename + '.npy', locality)
 
-
-generate_article_locality_matrix(global_path + '/examples/language_model/wikitext103_split/wiki_test_tokens')
-generate_article_locality_matrix(global_path + '/examples/language_model/wikitext103_split/wiki_train_tokens')
-generate_article_locality_matrix(global_path + '/examples/language_model/wikitext103_split/wiki_valid_tokens')
-
-
 def generate_section_locality_matrix(split_name):
+    print(split_name)
     test_sections = []
     testtrain_sections = []
     locality = []
@@ -41,7 +37,7 @@ def generate_section_locality_matrix(split_name):
         for line in testtrain_section_file:
             testtrain_sections.append(line.strip())
 
-    for p in test_sections:
+    for p in tqdm(test_sections):
         temp_loc = []
         for t in testtrain_sections:
             if p == t:
@@ -55,6 +51,7 @@ def generate_section_locality_matrix(split_name):
 
 
 def generate_domain_locality_matrix(split_name):
+    print(split_name)
     test_domains = []
     testtrain_domains = []
     locality = []
@@ -65,7 +62,7 @@ def generate_domain_locality_matrix(split_name):
         for line in testtrain_domain_file:
             testtrain_domains.append(set(line.strip().split(';')))
 
-    for p in test_domains:
+    for p in tqdm(test_domains):
         temp_loc = []
         for t in testtrain_domains:
             # if has any intersection
@@ -78,6 +75,17 @@ def generate_domain_locality_matrix(split_name):
     locality = np.array(locality).astype('int8')
     np.save('examples/language_model/wikitext103_seg/{}train.txt.dom.npy'.format(split_name), locality)
 
+global_path = str(pathlib.Path(__file__).parent.parent.resolve())
+
+""" generate_article_locality_matrix(global_path + '/examples/language_model/wikitext103_seg/wiki_test_tokens')
+generate_article_locality_matrix(global_path + '/examples/language_model/wikitext103_seg/wiki_train_tokens')
+generate_article_locality_matrix(global_path + '/examples/language_model/wikitext103_seg/wiki_valid_tokens') """
+
+generate_section_locality_matrix('test')
+generate_section_locality_matrix('valid')
+
+generate_domain_locality_matrix('test')
+generate_domain_locality_matrix('valid') 
 
 #generate_section_locality_matrix('valid')
 #generate_domain_locality_matrix('valid')

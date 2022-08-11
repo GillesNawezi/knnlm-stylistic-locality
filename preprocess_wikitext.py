@@ -8,6 +8,10 @@ import os
 from collections import defaultdict
 import numpy as np
 
+"""
+This Script generates the domain and section files for the knn-Lm Dstore
+"""
+folder = "wikitext103_split"
 
 class SlingExtractor(object):
     def load_kb(self, root_dir: str = 'local/data/e/wiki'):
@@ -15,6 +19,7 @@ class SlingExtractor(object):
         start = time.time()
         self.kb = sling.Store()
         self.kb.load(os.path.join(root_dir, 'kb.sling'))
+        x=y
         self.phrase = sling.PhraseTable(self.kb, os.path.join(root_dir, 'en', 'phrase-table.repo'))
         self.kb.freeze()
         self.extract_property_names()
@@ -118,7 +123,7 @@ def load_dbpedia_mapping():
 
 # mapping = load_dbpedia_mapping()
 se = SlingExtractor()
-se.load_kb(root_dir='/home/fangzhex/sling_data')
+se.load_kb(root_dir='/home/gilles/sling_data')
 
 def process_splits(pkl_path):
     data = pickle.load(open(pkl_path, 'rb'))

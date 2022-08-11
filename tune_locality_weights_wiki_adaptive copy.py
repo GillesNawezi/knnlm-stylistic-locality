@@ -88,7 +88,7 @@ class WeightedDist(torch.nn.Module):
         pkg_l = pkg_l.cuda()
         proj_l = proj_l.cuda()
         idx_mask = idx_mask.cuda()
-        
+
         locality_indicator = proj_l + 2 * pkg_l
 
         locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=4).permute(2, 0, 1)
@@ -142,11 +142,9 @@ test_lm_probs = torch.from_numpy(test_lm_probs).float().cuda()
 valid_dataset = TensorDataset(context_vecs, dists, pkg_locality, proj_locality, index_masks)
 
 test_dataset = TensorDataset(test_context_vecs, test_dists, test_pkg_locality, test_proj_locality, test_index_masks)
-bsz = 10000
-valid_dataloader = DataLoader(valid_dataset, batch_size=bsz, shuffle=True)
-test_dataloader = DataLoader(test_dataset, batch_size=bsz)
-
-
+bsz = len(valid_dataset)
+valid_dataloader = DataLoader(valid_dataset, batch_size=len(valid_dataset), shuffle=True)
+test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset))
 
 model = WeightedDist(nlayers=2, hidden_units=64, dropout=0.3).cuda()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -157,7 +155,6 @@ for i in range(500):
     epoch_loss = 0.0
     num_batches = 0
     model.train()
-    torch.cuda.empty_cache()
     for sample in valid_dataloader:
         optimizer.zero_grad()
         num_batches += 1
@@ -170,30 +167,13 @@ for i in range(500):
         loss.backward()
         optimizer.step()
         epoch_loss += loss.item() * bsz
-    del valid_dataloader
     print('Epoch:', i, 'Train Loss:', epoch_loss / len(valid_dataset))
     model.eval()
-    val_outputs = None
-    torch.cuda.empty_cache()
-    for sample in test_dataloader:
-        optimizer.zero_grad()
-        num_batches += 1
-        test_outputs, ps = model(sample[0],
-                            sample[1],
-                            sample[2],
-                            sample[3],
-                            sample[4])
-        if torch.is_tensor(val_outputs) == False:
-            val_outputs = test_outputs
-        else:
-            val_outputs = torch.cat((val_outputs,test_outputs), dim=0)
-    """   
     val_outputs, _ = model(test_context_vecs,
                            test_dists,
                            test_pkg_locality,
                            test_proj_locality,
                            test_index_masks)
-    """ 
     final_prob = combine_knn_and_vocab_probs(val_outputs, test_lm_probs, 0.25)
     val_loss = torch.mean(-final_prob).item()
     scheduler.step(val_loss)

@@ -14,6 +14,7 @@ import os
 
 import torch
 import numpy as np
+import pandas as pd
 
 from fairseq import checkpoint_utils, options, progress_bar, tasks, utils
 from fairseq.data import LMContextWindowDataset
@@ -216,7 +217,7 @@ def main(parsed_args):
 
                 tokens = hypo['tokens']
                 tgt_len = tokens.numel()
-                pos_scores = hypo['positional_scores'].float()
+                pos_scores = hypo['positional_scores'].float().nan_to_num()
                 predicted_topk = hypo['predicted_topk']
 
                 prediction_save['topk'].append(predicted_topk)
@@ -241,7 +242,12 @@ def main(parsed_args):
                 #        task.target_dictionary.string(tokens[inf_scores.nonzero()])
                 #    )
                 #    pos_scores = pos_scores[(~inf_scores).nonzero()]
+
+                    
                 score_sum += pos_scores.sum().cpu()
+                if pd.isna(score_sum.item()):
+                    print("Na found")
+
                 count += pos_scores.numel() - skipped_toks
 
                 if args.output_word_probs or args.output_word_stats:
