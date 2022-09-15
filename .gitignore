@@ -146,3 +146,5 @@ style_data_prepro/attack_annotations.tsv
 style_data_prepro/output/
 .vscode/launch.json
 prediction.pt
+epoch_log.txt
+wget-log

@@ -320,7 +320,6 @@ class KNN_Dstore(object):
 
                 locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=4).permute(2, 0, 1)
 
-                print("Load custom weights")
                 params = self.adaptive_model.model(queries[tgt != pad_idx])
                 
                 modified_dists = locality_feat[0] * (params[:, 0][:, None] * dists) + \

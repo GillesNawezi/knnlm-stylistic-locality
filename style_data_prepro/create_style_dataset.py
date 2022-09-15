@@ -12,10 +12,10 @@ global_path = str(pathlib.Path(__file__).parent.resolve())
 supportive =  pd.read_pickle(global_path + "/datasets/prepro/ruddit_final.pklxz",compression="xz")
 supportive = supportive.rename(columns={"comment":"text"})
 supportive["style"] = np.where(
-                        supportive['offensiveness_score'].between(-1, -0.1, inclusive="both"), 
+                        supportive['offensiveness_score'].between(-1, -0.3, inclusive="both"), 
                         'supportive', 
                         np.where(
-                                supportive['offensiveness_score'].between(0.1, 1, inclusive="both"), 'offensive', 'neutral_offensive'
+                                supportive['offensiveness_score'].between(0.3, 1, inclusive="both"), 'offensive', 'neutral_offensive'
                         )
                      )
 supportive = supportive[["text","style"]]
@@ -30,7 +30,7 @@ politeness = pd.read_pickle(global_path + "/datasets/prepro/politeness_wiki_stan
 
 pol_mapping = {1:"polite",
     	   0: "neutral_polite",
-           -1:"inpolite"
+           -1:"impolite"
         }
 
 politeness["style"] = politeness["meta.Binary"].map(pol_mapping)
@@ -48,7 +48,7 @@ toxicity = toxicity[["text","style"]]
 #Civil Comments Toxicity
 toxicity_cv = pd.read_pickle(global_path + "/datasets/prepro/civil_comments.pklxz",compression="xz")
 toxicity_cv = toxicity_cv.rename(columns={"comment_text":"text"})
-toxicity_cv["style"] = np.where(toxicity_cv["toxicity"]>=0.5,"toxic","non_toxic")
+toxicity_cv["style"] = np.where(toxicity_cv["toxicity"]>=0.5,"toxic","non-toxic")
 toxicity_cv = toxicity_cv[["text","style"]]
 
 
@@ -93,5 +93,5 @@ def create_input_files(df, dir_name):
         print("Done")
 
 
-dir_name = global_path + "/output/style_dataset/"
-create_input_files(sample_df, dir_name)
+#dir_name = global_path + "/output/style_dataset/"
+#create_input_files(sample_df, dir_name)

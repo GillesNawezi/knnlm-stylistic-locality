@@ -38,7 +38,7 @@ def main(args, init_distributed=False):
 
     assert args.max_tokens is not None or args.max_sentences is not None, \
         'Must specify batch size either with --max-tokens or --max-sentences'
-
+    print("test")
     # Initialize CUDA and distributed training
     if torch.cuda.is_available() and not args.cpu:
         torch.cuda.set_device(args.device_id)
@@ -243,6 +243,7 @@ def validate(args, trainer, task, epoch_itr, subsets):
 
         # log validation stats
         stats = get_valid_stats(args, trainer, agg.get_smoothed_values())
+        log_stats(stats)
         progress.print(stats, tag=subset, step=trainer.get_num_updates())
 
         valid_losses.append(stats[args.best_checkpoint_metric])
@@ -306,6 +307,14 @@ def cli_main(modify_parser=None):
         # single GPU training
         main(args)
 
+from pathlib import Path
+my_file = Path("epoch_log.txt")
+
+def log_stats(stats):
+    print("Log Stats")
+    with open(my_file, 'a+') as f:
+        f.write(str(stats))
+        f.write("\n")
 
 if __name__ == '__main__':
     cli_main()
