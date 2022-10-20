@@ -72,6 +72,8 @@ python build_dstore.py \
 
 
 # eval test with test knn
+
+CUDA_VISIBLE_DEVICES=2  \
 python eval_lm.py data-bin/wikitext103_seg \
     --path checkpoints/wikitext103_seg/checkpoint_best.pt \
     --sample-break-mode eos --max-tokens 3072 \
@@ -84,6 +86,7 @@ python eval_lm.py data-bin/wikitext103_seg \
     --probe 32 --knnlm  --fp16
 
 # eval test with test knn + locality
+CUDA_VISIBLE_DEVICES=2  \
 python eval_lm.py data-bin/wikitext103_seg \
     --path checkpoints/wikitext103_seg/checkpoint_best.pt \
     --sample-break-mode eos --max-tokens 3072 \
@@ -110,6 +113,7 @@ python eval_lm.py data-bin/wikitext103_seg \
     --use-locality
 
 # eval valid with valid knn
+CUDA_VISIBLE_DEVICES=2  \
 python eval_lm.py data-bin/wikitext103_seg \
     --path checkpoints/wikitext103_seg/checkpoint_best.pt \
     --sample-break-mode eos --max-tokens 3072 \
@@ -122,6 +126,19 @@ python eval_lm.py data-bin/wikitext103_seg \
     --probe 32 --knnlm  --fp16 --knn-sim-func "do_not_recomp_l2" --no-load-keys --move-dstore-to-mem \
 
 
+# eval valid with valid knn + locality
+CUDA_VISIBLE_DEVICES=2  \
+python eval_lm.py data-bin/wikitext103_seg \
+    --path checkpoints/wikitext103_seg/checkpoint_best.pt \
+    --sample-break-mode eos --max-tokens 3072 \
+    --softmax-batch 1024 \
+    --gen-subset valid \
+    --dstore-filename checkpoints/wikitext103_seg/valid_dstore \
+    --indexfile checkpoints/wikitext103_seg/valid_knn.index  \
+    --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
+    --k 1024 --lmbda 0.25 --dstore-size 201217 --knn-keytype last_ffn_input \
+    --probe 32 --knnlm  --fp16 --knn-sim-func "do_not_recomp_l2" --no-load-keys --move-dstore-to-mem \
+    --use-locality
 
 # preprocess test+train, valid+train
 TEXT=examples/language_model/wikitext103_seg

@@ -64,11 +64,13 @@ filter_style = ["non_toxic","non-toxic","neutral_polite","neutral_offensive"]
 style_df = style_df[~style_df["style"].isin(filter_style)]
 
 #Downsampling
+"""
 no_of_samples = 3000
 styles = style_df["style"].unique().tolist()
 
-sample_df = style_df.groupby("style").sample(n=3000, random_state=1, replace=True).reset_index(drop=True)
 
+sample_df = style_df.groupby("style").sample(n=3000, random_state=1, replace=True).reset_index(drop=True)
+"""
 def create_input_files(df, dir_name):
         X_train, X_test, y_train, y_test = train_test_split(df["text"], df["style"], random_state=0, test_size=0.25, stratify=df["style"])
         X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, random_state=0, test_size=0.25, stratify=y_train)
@@ -93,5 +95,5 @@ def create_input_files(df, dir_name):
         print("Done")
 
 
-#dir_name = global_path + "/output/style_dataset/"
-#create_input_files(sample_df, dir_name)
+dir_name = global_path + "/output/style_dataset/"
+create_input_files(style_df, dir_name)

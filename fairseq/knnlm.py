@@ -132,6 +132,10 @@ class KNN_Dstore(object):
             if 'java' in args.dstore_filename:
                 self.package_locality_features = np.load('examples/language_model/java/java_test_pre.original_path.npy')
                 self.project_locality_features = np.load('examples/language_model/java/testProjects.npy')
+            elif "style":
+                # Stylistic Locality
+                self.package_locality_features = np.load(
+                    f'examples/language_model/style_dataset_full/{args.gen_subset}train.txt.sec.npy')
             else:
                 # wikitext
                 # section locality
@@ -145,6 +149,10 @@ class KNN_Dstore(object):
                 self.package_locality_features = np.load(
                     'examples/language_model/java/java_validation_pre.original_path.npy')
                 self.project_locality_features = np.load('examples/language_model/java/validProjects.npy')
+            elif "style":
+                # Stylistic Locality
+                self.package_locality_features = np.load(
+                    f'examples/language_model/style_dataset_full/{args.gen_subset}train.txt.sec.npy')
             else:
                 # wikitext
                 # section locality
@@ -159,6 +167,7 @@ class KNN_Dstore(object):
         self.project_locality_features = self.project_locality_features.astype('int8')
 
         # load tuned adaptive model
+        print("Load Tuned Adaptive Model")
         print(args.path.rsplit('/', 1)[0] + '/adaptive_model_weights.pt')
         
         if args.use_locality:
@@ -313,6 +322,16 @@ class KNN_Dstore(object):
                 # modified_dists = locality_feat[0] * (params[:, 0][:, None] * dists) + \
                 #                  locality_feat[1] * (params[:, 1][:, None] * dists + params[:, 2][:, None]) + \
                 #                  locality_feat[2] * (params[:, 3][:, None] * dists + params[:, 4][:, None])
+                probs = utils.log_softmax(modified_dists, dim=-1)
+            elif 'style' in self.args.dstore_filename:
+                locality_indicator = project_locality + 2 * package_locality
+                locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=2).permute(2, 0, 1)
+
+                params = self.adaptive_model.model(queries[tgt != pad_idx])
+
+                modified_dists = locality_feat[0] * (params[:, 0][:, None] * dists) + \
+                                 locality_feat[1] * (params[:, 1][:, None] * dists + params[:, 2][:, None]) 
+
                 probs = utils.log_softmax(modified_dists, dim=-1)
             else:
                 # wiki
