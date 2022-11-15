@@ -35,7 +35,12 @@ def generate_section_locality_matrix(split_name):
         for line in test_section_file:
             test_sections.append(line.strip())
         for line in testtrain_section_file:
-            testtrain_sections.append(line.strip())
+            testtrain_sections.append(line.strip())  
+
+    print("\n")
+    print(f"Test Domains:{len(test_sections)}")
+    print(f"TestTrain Domains:{len(testtrain_sections)}")
+    print("\n")      
 
     for p in tqdm(test_sections):
         temp_loc = []
@@ -47,6 +52,7 @@ def generate_section_locality_matrix(split_name):
         locality.append(temp_loc)
 
     locality = np.array(locality).astype('int8')
+    print(locality.shape)
     np.save('examples/language_model/wikitext103_seg/{}train.txt.sec.npy'.format(split_name), locality)
 
 
@@ -82,10 +88,10 @@ generate_article_locality_matrix(global_path + '/examples/language_model/wikitex
 generate_article_locality_matrix(global_path + '/examples/language_model/wikitext103_seg/wiki_valid_tokens') """
 
 generate_section_locality_matrix('test')
-generate_section_locality_matrix('valid')
+#generate_section_locality_matrix('valid')
 
-generate_domain_locality_matrix('test')
-generate_domain_locality_matrix('valid') 
+#generate_domain_locality_matrix('test')
+#generate_domain_locality_matrix('valid') 
 
 #generate_section_locality_matrix('valid')
 #generate_domain_locality_matrix('valid')

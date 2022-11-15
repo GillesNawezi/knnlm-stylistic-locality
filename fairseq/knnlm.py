@@ -128,14 +128,15 @@ class KNN_Dstore(object):
 
         # read in the locality feature from npy file
         print(f"Subset: {args.gen_subset}")
+        print(f"Subset: {args.dstore_filename}")
         if 'test' in args.gen_subset:
             if 'java' in args.dstore_filename:
                 self.package_locality_features = np.load('examples/language_model/java/java_test_pre.original_path.npy')
                 self.project_locality_features = np.load('examples/language_model/java/testProjects.npy')
-            elif "style":
+            elif "style" in args.dstore_filename:
                 # Stylistic Locality
-                self.package_locality_features = np.load(
-                    f'examples/language_model/style_dataset_full/{args.gen_subset}train.txt.sec.npy')
+                self.package_locality_features = np.memmap(
+                    f'examples/language_model/style_dataset_full/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(128259, 416839))
             else:
                 # wikitext
                 # section locality
@@ -149,10 +150,15 @@ class KNN_Dstore(object):
                 self.package_locality_features = np.load(
                     'examples/language_model/java/java_validation_pre.original_path.npy')
                 self.project_locality_features = np.load('examples/language_model/java/validProjects.npy')
-            elif "style":
+            elif "style" in args.dstore_filename:
                 # Stylistic Locality
-                self.package_locality_features = np.load(
-                    f'examples/language_model/style_dataset_full/{args.gen_subset}train.txt.sec.npy')
+                print("Load Styles")
+                self.package_locality_features = np.memmap(
+                    f'examples/language_model/style_dataset_full/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(58905, 392700))
+                
+                print(f'examples/language_model/style_dataset_full/{args.gen_subset}train.txt.style.npy')
+                print(self.package_locality_features.shape)  
+                print("Styles Loaded")   
             else:
                 # wikitext
                 # section locality
@@ -163,14 +169,21 @@ class KNN_Dstore(object):
                     f'examples/language_model/wikitext103_seg/{args.gen_subset}train.txt.dom.npy')
 
         # change dtype to int8 to save space
-        self.package_locality_features = self.package_locality_features.astype('int8')
-        self.project_locality_features = self.project_locality_features.astype('int8')
+        try:
+            self.package_locality_features = self.package_locality_features.astype('int8')
+        except:
+            print("No package_locality_features")
 
-        # load tuned adaptive model
-        print("Load Tuned Adaptive Model")
-        print(args.path.rsplit('/', 1)[0] + '/adaptive_model_weights.pt')
-        
+        try:    
+            self.project_locality_features = self.project_locality_features.astype('int8')
+        except:
+            print("No project_locality_features")
+
+        # load tuned adaptive model        
         if args.use_locality:
+            print("Load Tuned Adaptive Model")
+            print(args.path.rsplit('/', 1)[0] + '/adaptive_model_weights.pt')
+
             if 'java' in args.dstore_filename:
                 self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64, num_outputs=5,
                                                    context_dim=512).cuda()
@@ -264,17 +277,33 @@ class KNN_Dstore(object):
         dists, knns = self.get_knns(queries[tgt != pad_idx], sample_ids=reduced_token_sample_ids)
 
         # locality features
-        project_locality = self.project_locality_features[
-            np.tile(reduced_token_sample_ids, (knns.shape[1], 1)).T,
-            self.inv_token_sample_map[knns]]
-        flat_project_locality = project_locality.flatten()
-        project_locality = torch.from_numpy(project_locality).cuda()
+        try:
+            project_locality = self.project_locality_features[
+                np.tile(reduced_token_sample_ids, (knns.shape[1], 1)).T,
+                self.inv_token_sample_map[knns]]
+            flat_project_locality = project_locality.flatten()
+            project_locality = torch.from_numpy(project_locality).cuda()
+            has_project_locality = True
+        except Exception as e: 
+            print(f"No project_locality_features: {e}")
+            has_project_locality = False
 
-        package_locality = self.package_locality_features[
-            np.tile(reduced_token_sample_ids, (knns.shape[1], 1)).T,
-            self.inv_token_sample_map[knns]]
-        flat_package_locality = package_locality.flatten()
-        package_locality = torch.from_numpy(package_locality).cuda()
+        try:     
+            package_locality = self.package_locality_features[
+                np.tile(reduced_token_sample_ids, (knns.shape[1], 1)).T,
+                self.inv_token_sample_map[knns]]
+            flat_package_locality = package_locality.flatten()
+            package_locality = torch.from_numpy(package_locality).cuda()
+            has_package_locality = True
+        except Exception as e: 
+            has_package_locality = False
+            print(f"No package_locality_features: {e}")
+            print(f"KNNS: {knns} \n Shape: {knns.shape} \n")
+            print(f"inv_token_sample_map: {self.inv_token_sample_map[knns]} \n Shape: {self.inv_token_sample_map[knns].shape} \n")
+            print(f"Tiles {np.tile(reduced_token_sample_ids, (knns.shape[1], 1)).T} \n Shape: {np.tile(reduced_token_sample_ids, (knns.shape[1], 1)).T.shape}")
+            print(f"Smaple Ids {reduced_token_sample_ids} \n Shape: {reduced_token_sample_ids.shape}")
+            x=yzz
+            
 
         # save if retrieved is eq to actual tgt?
         knn_token_ids = self.vals[knns].squeeze(-1)
@@ -293,8 +322,12 @@ class KNN_Dstore(object):
 
         self.dist_cache.append(flat_dists)
         self.knn_cache.append(flat_knns)
-        self.project_locality_cache.append(flat_project_locality)
-        self.package_locality_cache.append(flat_package_locality)
+
+        if has_project_locality:
+            self.project_locality_cache.append(flat_project_locality)
+        if has_package_locality:
+            self.package_locality_cache.append(flat_package_locality)
+            
         self.rank_cache.append(flat_rank)
         self.correctness_cache.append(flat_correctness)
 
@@ -324,7 +357,7 @@ class KNN_Dstore(object):
                 #                  locality_feat[2] * (params[:, 3][:, None] * dists + params[:, 4][:, None])
                 probs = utils.log_softmax(modified_dists, dim=-1)
             elif 'style' in self.args.dstore_filename:
-                locality_indicator = project_locality + 2 * package_locality
+                locality_indicator = package_locality
                 locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=2).permute(2, 0, 1)
 
                 params = self.adaptive_model.model(queries[tgt != pad_idx])

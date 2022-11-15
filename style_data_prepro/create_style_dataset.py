@@ -63,6 +63,11 @@ style_df = style_df[~style_df["text"].isin(filter)]
 filter_style = ["non_toxic","non-toxic","neutral_polite","neutral_offensive"]
 style_df = style_df[~style_df["style"].isin(filter_style)]
 
+style_df = style_df.replace(r'\n',' ', regex=True) 
+print(f"Before dropna: {len(style_df)}")
+style_df = style_df.dropna()
+print(f"After dropna:{len(style_df)}")
+
 #Downsampling
 """
 no_of_samples = 3000
@@ -71,29 +76,54 @@ styles = style_df["style"].unique().tolist()
 
 sample_df = style_df.groupby("style").sample(n=3000, random_state=1, replace=True).reset_index(drop=True)
 """
+def to_txt(writePath, df):
+        with open(writePath, 'a') as f:
+                dfAsString = df.to_string(header=False, index=False)
+                f.write(dfAsString)
+
+
 def create_input_files(df, dir_name):
-        X_train, X_test, y_train, y_test = train_test_split(df["text"], df["style"], random_state=0, test_size=0.25, stratify=df["style"])
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, random_state=0, test_size=0.25, stratify=y_train)
+        X_train, X_test, y_train, y_test = train_test_split(df["text"], df["style"], random_state=0, test_size=0.20, stratify=df["style"])
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, random_state=0, test_size=0.15, stratify=y_train)
 
         if not os.path.exists(dir_name):
                 os.mkdir(dir_name)
         
-        X_train.to_csv(dir_name + "train.txt", header=None, index=None, sep=' ', mode='a')
-        X_test.to_csv(dir_name + "test.txt", header=None, index=None, sep=' ', mode='a')
-        X_valid.to_csv(dir_name + "valid.txt", header=None, index=None, sep=' ', mode='a')
+        X_train.to_csv(dir_name + "train.txt", header=None, index=None, sep=' ', mode='w')
+        X_test.to_csv(dir_name + "test.txt", header=None, index=None, sep=' ', mode='w')
+        X_valid.to_csv(dir_name + "valid.txt", header=None, index=None, sep=' ', mode='w')
 
-        y_train.to_csv(dir_name + "train.txt.style", header=None, index=None, sep=' ', mode='a')
-        y_test.to_csv(dir_name + "test.txt.style", header=None, index=None, sep=' ', mode='a')
-        y_valid.to_csv(dir_name + "valid.txt.style", header=None, index=None, sep=' ', mode='a')
+        y_train.to_csv(dir_name + "train.txt.style", header=None, index=None, sep=' ', mode='w')
+        y_test.to_csv(dir_name + "test.txt.style", header=None, index=None, sep=' ', mode='w')
+        y_valid.to_csv(dir_name + "valid.txt.style", header=None, index=None, sep=' ', mode='w')
 
-        pd.concat([X_test,X_train], ignore_index=True).to_csv(dir_name + "testtrain.txt", header=None, index=None, sep=' ', mode='a')
-        pd.concat([X_valid,X_train], ignore_index=True).to_csv(dir_name + "validtrain.txt", header=None, index=None, sep=' ', mode='a')
+        pd.concat([X_test,X_train], ignore_index=True).to_csv(dir_name + "testtrain.txt", header=None, index=None, sep=' ', mode='w')
+        pd.concat([X_valid,X_train], ignore_index=True).to_csv(dir_name + "validtrain.txt", header=None, index=None, sep=' ', mode='w')
 
-        pd.concat([y_test,y_train], ignore_index=True).to_csv(dir_name + "testtrain.txt.style", header=None, index=None, sep=' ', mode='a')
-        pd.concat([y_valid,y_train], ignore_index=True).to_csv(dir_name + "validtrain.txt.style", header=None, index=None, sep=' ', mode='a')
+        pd.concat([y_test,y_train], ignore_index=True).to_csv(dir_name + "testtrain.txt.style", header=None, index=None, sep=' ', mode='w')
+        pd.concat([y_valid,y_train], ignore_index=True).to_csv(dir_name + "validtrain.txt.style", header=None, index=None, sep=' ', mode='w')
 
         print("Done")
 
+        print(len(X_train))
+        print(sum(1 for line in open(dir_name + "train.txt")))
+        print(sum(1 for line in open(dir_name + "train.txt.style")))
+        print("\n")
+        print(len(X_valid))
+        print(sum(1 for line in open(dir_name + "valid.txt")))
+        print(sum(1 for line in open(dir_name + "valid.txt.style")))
+        print("\n")
+        print(len(pd.concat([X_valid,X_train])))
+        print(sum(1 for line in open(dir_name + "valid.txt.style")))
+
 
 dir_name = global_path + "/output/style_dataset/"
+
 create_input_files(style_df, dir_name)
+
+"""
+style_df["no_of_words"] = style_df["text"].str.split().str.len()
+no_of_tokens = style_df["no_of_words"].sum() 
+print(f"No of Tokens {no_of_tokens}")
+"""
+
