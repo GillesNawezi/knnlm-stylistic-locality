@@ -136,7 +136,7 @@ class KNN_Dstore(object):
             elif "style" in args.dstore_filename:
                 # Stylistic Locality
                 self.package_locality_features = np.memmap(
-                    f'examples/language_model/style_dataset_full/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(128259, 416839))
+                    f'examples/language_model/style_dataset/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(128259, 416839))
             else:
                 # wikitext
                 # section locality
@@ -154,9 +154,8 @@ class KNN_Dstore(object):
                 # Stylistic Locality
                 print("Load Styles")
                 self.package_locality_features = np.memmap(
-                    f'examples/language_model/style_dataset_full/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(58905, 392700))
+                    f'examples/language_model/style_dataset/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(58905, 392700))
                 
-                print(f'examples/language_model/style_dataset_full/{args.gen_subset}train.txt.style.npy')
                 print(self.package_locality_features.shape)  
                 print("Styles Loaded")   
             else:

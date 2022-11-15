@@ -316,10 +316,17 @@ def main(parsed_args):
                 np.concatenate(knn_dstore.knn_cache))
         np.save('saved_tensors/{}/{}_proj_dist_cache.npy'.format(dir_name, split_name),
                 np.concatenate(knn_dstore.dist_cache))
-        np.save('saved_tensors/{}/{}_proj_locality_cache.npy'.format(dir_name, split_name),
-                np.concatenate(knn_dstore.project_locality_cache))
-        np.save('saved_tensors/{}/{}_pkg_locality_cache.npy'.format(dir_name, split_name),
-                np.concatenate(knn_dstore.package_locality_cache))
+        try:
+            np.save('saved_tensors/{}/{}_proj_locality_cache.npy'.format(dir_name, split_name),
+                    np.concatenate(knn_dstore.project_locality_cache))
+        except Exception as e:
+            print(f"Error While Saving Project Tensor {e}")
+        try:
+            np.save('saved_tensors/{}/{}_pkg_locality_cache.npy'.format(dir_name, split_name),
+                    np.concatenate(knn_dstore.package_locality_cache))
+        except Exception as e:
+            print(f"Error While Saving Package Tensor {e}")
+            
         np.save('saved_tensors/{}/{}_proj_rank_cache.npy'.format(dir_name, split_name),
                 np.concatenate(knn_dstore.rank_cache))
         np.save('saved_tensors/{}/{}_proj_correctness_cache.npy'.format(dir_name, split_name),
