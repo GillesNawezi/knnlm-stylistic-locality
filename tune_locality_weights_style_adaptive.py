@@ -170,8 +170,7 @@ for i in range(500):
         outputs, ps = model(sample[0],
                             sample[1],
                             sample[2],
-                            sample[3],
-                            sample[4])
+                            sample[3])
         loss = torch.mean(-outputs)
         loss.backward()
         optimizer.step()
@@ -187,8 +186,7 @@ for i in range(500):
         test_outputs, ps = model(sample[0],
                             sample[1],
                             sample[2],
-                            sample[3],
-                            sample[4])
+                            sample[3])
         if torch.is_tensor(val_outputs) == False:
             val_outputs = test_outputs
         else:
