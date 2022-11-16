@@ -80,18 +80,19 @@ class WeightedDist(torch.nn.Module):
 
         self.model = nn.Sequential(*models)
 
-    def forward(self, context_vec, dist, pkg_l, proj_l, idx_mask):
+    def forward(self, context_vec, dist, pkg_l, idx_mask):
         """
         """
         context_vec = context_vec.cuda()
         dist = dist.cuda()
         pkg_l = pkg_l.cuda()
-        proj_l = proj_l.cuda()
+        #proj_l = proj_l.cuda()
         idx_mask = idx_mask.cuda()
         
-        locality_indicator = proj_l + 2 * pkg_l
+        #locality_indicator = proj_l + 2 * pkg_l
+        locality_indicator = pkg_l
 
-        locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=4).permute(2, 0, 1)
+        locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=2).permute(2, 0, 1)
 
         params = self.model(context_vec)
 
