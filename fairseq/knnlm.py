@@ -133,6 +133,12 @@ class KNN_Dstore(object):
             if 'java' in args.dstore_filename:
                 self.package_locality_features = np.load('examples/language_model/java/java_test_pre.original_path.npy')
                 self.project_locality_features = np.load('examples/language_model/java/testProjects.npy')
+            elif "style_category" in args.dstore_filename:
+                #Style + Category
+                self.package_locality_features = np.memmap(
+                    f'examples/language_model/style_category_dataset/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(69300, 403059))
+                self.project_locality_features = np.memmap(
+                    f'examples/language_model/style_category_dataset/{args.gen_subset}train.txt.category.npy', dtype='int8', mode='r', shape=(69300, 403059))
             elif "style" in args.dstore_filename:
                 # Stylistic Locality
                 print("Load Styles")
@@ -152,6 +158,12 @@ class KNN_Dstore(object):
                 self.package_locality_features = np.load(
                     'examples/language_model/java/java_validation_pre.original_path.npy')
                 self.project_locality_features = np.load('examples/language_model/java/validProjects.npy')
+            elif "style_category" in args.dstore_filename:
+                #Style + Category
+                self.package_locality_features = np.memmap(
+                    f'examples/language_model/style_category_dataset/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(58905, 392700))
+                self.project_locality_features = np.memmap(
+                    f'examples/language_model/style_category_dataset/{args.gen_subset}train.txt.category.npy', dtype='int8', mode='r', shape=(58905, 392700))
             elif "style" in args.dstore_filename:
                 # Stylistic Locality
                 print("Load Styles")
@@ -178,12 +190,15 @@ class KNN_Dstore(object):
         except:
             print("No project_locality_features")
 
-        # load tuned adaptive model        
+        # load tuned adaptive model        6
         if args.use_locality:
             print("Load Tuned Adaptive Model")
             print(args.path.rsplit('/', 1)[0] + '/adaptive_model_weights.pt')
 
             if 'java' in args.dstore_filename:
+                self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64, num_outputs=5,
+                                                   context_dim=512).cuda()
+            elif 'style_category' in args.dstore_filename:
                 self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64, num_outputs=5,
                                                    context_dim=512).cuda()
             else:
@@ -354,6 +369,21 @@ class KNN_Dstore(object):
                 # modified_dists = locality_feat[0] * (params[:, 0][:, None] * dists) + \
                 #                  locality_feat[1] * (params[:, 1][:, None] * dists + params[:, 2][:, None]) + \
                 #                  locality_feat[2] * (params[:, 3][:, None] * dists + params[:, 4][:, None])
+                probs = utils.log_softmax(modified_dists, dim=-1)
+            elif 'style_category' in self.args.dstore_filename:
+                locality_indicator = project_locality + package_locality
+                locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=3).permute(2, 0, 1)
+
+                """
+                modified_dists = locality_feat[0] * (0.0223 * dists) \
+                                 + locality_feat[1] * (0.0326 * dists + 3.6268) \
+                                 + locality_feat[2] * (0.0411 * dists + 5.9197)
+                """
+                # params = self.adaptive_model.model(queries[tgt != pad_idx])
+                #
+                modified_dists = locality_feat[0] * (params[:, 0][:, None] * dists) + \
+                                 locality_feat[1] * (params[:, 1][:, None] * dists + params[:, 2][:, None]) + \
+                                 locality_feat[2] * (params[:, 3][:, None] * dists + params[:, 4][:, None])
                 probs = utils.log_softmax(modified_dists, dim=-1)
             elif 'style' in self.args.dstore_filename:
                 locality_indicator = package_locality
