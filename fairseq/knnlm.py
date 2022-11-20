@@ -200,7 +200,7 @@ class KNN_Dstore(object):
                                                    context_dim=512).cuda()
             elif 'style_category' in args.dstore_filename:
                 self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64, num_outputs=5,
-                                                   context_dim=512).cuda()
+                                                   context_dim=1024).cuda()
             else:
                 self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64).cuda()
             self.adaptive_model.load_state_dict(torch.load(args.path.rsplit('/', 1)[0] + '/adaptive_model_weights.pt'))

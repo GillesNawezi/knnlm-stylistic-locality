@@ -46,7 +46,7 @@ def generate_category_locality_matrix(split_name, chunk_size):
     # Create nmap output
     output_array = np.memmap(filename, dtype='int8', mode='w+', shape=(len(test_sections),len(testtrain_sections)))
     print(output_array.shape)
-    return True
+
 
     i = 0
     for p in tqdm(test_sections):
