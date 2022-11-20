@@ -312,7 +312,7 @@ from pathlib import Path
 
 def log_stats(stats,args):
     split = args.save_dir
-    my_file = Path(f"{args.save_dir}epoch_log.txt")
+    my_file = Path(f"{args.save_dir}/epoch_log.txt")
     print("Log Stats")
     with open(my_file, 'a+') as f:
         f.write(str(stats))
