@@ -379,7 +379,7 @@ class KNN_Dstore(object):
                                  + locality_feat[1] * (0.0326 * dists + 3.6268) \
                                  + locality_feat[2] * (0.0411 * dists + 5.9197)
                 """
-                # params = self.adaptive_model.model(queries[tgt != pad_idx])
+                params = self.adaptive_model.model(queries[tgt != pad_idx])
                 #
                 modified_dists = locality_feat[0] * (params[:, 0][:, None] * dists) + \
                                  locality_feat[1] * (params[:, 1][:, None] * dists + params[:, 2][:, None]) + \

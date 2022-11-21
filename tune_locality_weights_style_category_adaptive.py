@@ -97,7 +97,7 @@ class WeightedDist(torch.nn.Module):
 
 
 num_retrieved = 1024
-dataset = "style_category_dataset"
+dataset = "style_category_wiki_fine_tune" #"style_category_dataset"
 global_path = str(pathlib.Path(__file__).parent.resolve()) + "/"
 n=50000
 epochs = 1000
@@ -165,7 +165,10 @@ optimizer = torch.optim.Adam(model.parameters(), lr=5e-5)
 scheduler = ReduceLROnPlateau(optimizer, patience=2, factor=0.5, min_lr=1e-5)
 best_val_loss = 1e8
 prev_lr = optimizer.param_groups[0]['lr']
-model.load_state_dict(torch.load(f'checkpoints/{dataset}/adaptive_model_weights.pt'))
+try:
+  model.load_state_dict(torch.load(f'checkpoints/{dataset}/adaptive_model_weights.pt'))
+except:
+  print("No model found")
 
 for i in range(epochs):
     epoch_loss = 0.0
