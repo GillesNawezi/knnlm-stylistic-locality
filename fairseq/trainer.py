@@ -171,7 +171,18 @@ class Trainer(object):
 
         bexists = PathManager.isfile(filename)
         if bexists:
+            # ===== For Fine Tuning Delete Size Missmatches =====
             state = checkpoint_utils.load_checkpoint_to_cpu(filename)
+
+            for k in state["model"]:
+                if k in self.get_model():
+                    if state["model"][k].shape != self.get_model()[k].shape:
+                        logger.info(f"Skip loading parameter: {k}, "
+                                    f"required shape: {self.get_model()[k].shape}, "
+                                    f"loaded shape: {state['model'][k].shape}")
+                        state["model"][k] = self.get_model()[k]                     
+                else:
+                    logger.info(f"Dropping parameter {k}")
 
             # load model parameters
             try:
