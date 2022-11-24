@@ -152,3 +152,4 @@ examples/language_model/style_dataset_full_sic/
 fairseq/knnlm_sic.py
 notebooks/
 examples/language_model/style_category_dataset/validtrain.txt
+examples/language_model/style_category_dataset/
