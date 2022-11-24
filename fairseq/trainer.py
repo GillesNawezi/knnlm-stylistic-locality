@@ -175,12 +175,12 @@ class Trainer(object):
             state = checkpoint_utils.load_checkpoint_to_cpu(filename)
 
             for k in state["model"]:
-                if k in self.get_model():
-                    if state["model"][k].shape != self.get_model()[k].shape:
+                if k in self.get_model().state_dict():
+                    if state["model"][k].shape != self.get_model().state_dict()[k].shape:
                         logger.info(f"Skip loading parameter: {k}, "
-                                    f"required shape: {self.get_model()[k].shape}, "
+                                    f"required shape: {self.get_model().state_dict()[k].shape}, "
                                     f"loaded shape: {state['model'][k].shape}")
-                        state["model"][k] = self.get_model()[k]                     
+                        state["model"][k] = self.get_model().state_dict()[k]                     
                 else:
                     logger.info(f"Dropping parameter {k}")
 
