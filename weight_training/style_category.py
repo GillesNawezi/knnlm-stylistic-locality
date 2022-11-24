@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 num_retrieved = 1024
 dataset = "style_category_wiki_fine_tune" #"style_category_dataset"
-global_path = str(pathlib.Path(__file__).parent.resolve()) + "/"
+global_path = str(pathlib.Path(__file__).parent.parent.resolve()) + "/"
 n=50000
 epochs = 1000
 
