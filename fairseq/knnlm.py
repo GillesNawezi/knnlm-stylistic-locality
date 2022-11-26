@@ -164,6 +164,13 @@ class KNN_Dstore(object):
                 self.package_locality_features = np.load(
                     'examples/language_model/java/java_validation_pre.original_path.npy')
                 self.project_locality_features = np.load('examples/language_model/java/validProjects.npy')
+            elif "style_source" in args.dstore_filename:
+                #Style + Source
+                print(f"Load Style Source Data")
+                self.package_locality_features = np.memmap(
+                    f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(58905, 392700))
+                self.project_locality_features = np.memmap(
+                    f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(58905, 392700))
             elif "style_category" in args.dstore_filename:
                 #Style + Category
                 self.package_locality_features = np.memmap(
