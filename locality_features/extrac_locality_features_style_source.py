@@ -50,7 +50,7 @@ def generate_source_locality_matrix(split_name, chunk_size):
     log_file_path = f'{target_folder}{split_name}_source_locality_shapes.txt'
 
     with open(log_file_path, "w+") as f: 
-        f.write(output_array.shape)
+        f.write(str(output_array.shape))
 
     i = 0
     for p in tqdm(test_sections):
@@ -110,6 +110,8 @@ def generate_style_locality_matrix(split_name, chunk_size):
     print(output_array.shape)
 
     log_file_path = f'{target_folder}{split_name}_style_locality_shapes.txt'
+    with open(log_file_path, "w+") as f: 
+        f.write(str(output_array.shape))
 
     i = 0
     for p in tqdm(test_sections):
