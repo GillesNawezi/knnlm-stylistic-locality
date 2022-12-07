@@ -21,6 +21,8 @@ proj_locality = np.load(f'saved_tensors/{dataset}/valid_proj_locality_cache.npy'
 index_masks = np.load(f'saved_tensors/{dataset}/valid_proj_index_mask_cache.npy').reshape(-1, num_retrieved)
 lm_probs = np.load(f'saved_tensors/{dataset}/valid_lm_prob_cache.npy')
 
+print(context_vecs[0])
+
 print(context_vecs.shape)
 print(dists.shape)
 print(pkg_locality.shape)

@@ -108,6 +108,7 @@ class KNN_Dstore(object):
             self.inv_token_sample_map[v[0]:v[1]] = k
 
         # store all the top-k retrieved results
+        self.context_locality_cache = []
         self.sample_id_cache = []
         self.dist_cache = []
         self.knn_cache = []
@@ -213,8 +214,8 @@ class KNN_Dstore(object):
                 self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64, num_outputs=5,
                                                    context_dim=512).cuda()
             elif 'style_source' in args.dstore_filename:
-                self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64, num_outputs=5,
-                                                   context_dim=1024).cuda()
+                #self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64, num_outputs=5, context_dim=1024).cuda()
+                self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64).cuda()
             elif 'style_category' in args.dstore_filename:
                 self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64, num_outputs=5,
                                                    context_dim=1024).cuda()
