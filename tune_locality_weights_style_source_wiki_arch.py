@@ -119,6 +119,16 @@ pkg_locality = np.load(f'saved_tensors/{dataset}/valid_pkg_locality_cache.npy').
 proj_locality = np.load(f'saved_tensors/{dataset}/valid_proj_locality_cache.npy').reshape(-1, num_retrieved)
 index_masks = np.load(f'saved_tensors/{dataset}/valid_proj_index_mask_cache.npy').reshape(-1, num_retrieved)
 lm_probs = np.load(f'saved_tensors/{dataset}/valid_lm_prob_cache.npy')
+sample_ids = np.load(f'saved_tensors/{dataset}/valid_sample_id_cache.npy')
+
+print(context_vecs.shape)
+print("\n")
+
+print(sample_ids.shape)
+print(sample_ids[0].shape)
+
+
+x=y
 
 context_vecs = context_vecs[:n,:]
 dists = dists[:n,:]
