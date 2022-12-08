@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 from torch import nn
@@ -121,22 +122,37 @@ index_masks = np.load(f'saved_tensors/{dataset}/valid_proj_index_mask_cache.npy'
 lm_probs = np.load(f'saved_tensors/{dataset}/valid_lm_prob_cache.npy')
 sample_ids = np.load(f'saved_tensors/{dataset}/valid_sample_id_cache.npy')
 
-print(context_vecs.shape)
-print("\n")
 
-print(sample_ids.shape)
-print(sample_ids[0].shape)
+# Load Localities
+folder = global_path + "examples/language_model/style_source_dataset/"
+valid_style_file = folder + "valid.txt.style"
+
+with open(valid_style_file, "r") as f:
+    styles = f.readlines()
 
 
-x=y
+df = pd.Series(styles).to_frame()
+df.index = df.index.set_names(["samp_id"])
+df = df.reset_index()
+df = df.rename(columns={0:"style"})
+df_samp = pd.DataFrame({
+                'samp_id': sample_ids.ravel(),
+            })
 
-context_vecs = context_vecs[:n,:]
-dists = dists[:n,:]
-pkg_locality = pkg_locality[:n,:]
-proj_locality = proj_locality[:n,:]
-index_masks = index_masks[:n,:]
-lm_probs = lm_probs[:n]
+df_samp = df_samp.merge(df, how="left", on="samp_id").dropna()
 
+#n = df_samp["style"].value_counts().min()
+n=15000
+df_samp = df_samp.groupby("style").sample(n=n, random_state=1, replace=True)
+
+indices = df_samp.index.tolist()
+
+context_vecs = context_vecs[indices]
+dists = dists[indices]
+pkg_locality = pkg_locality[indices]
+proj_locality = proj_locality[indices]
+lm_probs = lm_probs[indices]
+index_masks = index_masks[indices]
 
 context_vecs = torch.from_numpy(context_vecs).float()
 dists = torch.from_numpy(dists).float()
@@ -151,13 +167,34 @@ test_pkg_locality = np.load(f'saved_tensors/{dataset}/test_pkg_locality_cache.np
 test_proj_locality = np.load(f'saved_tensors/{dataset}/test_proj_locality_cache.npy').reshape(-1, num_retrieved)
 test_index_masks = np.load(f'saved_tensors/{dataset}/test_proj_index_mask_cache.npy').reshape(-1, num_retrieved)
 test_lm_probs = np.load(f'saved_tensors/{dataset}/test_lm_prob_cache.npy')
+test_sample_ids = np.load(f'saved_tensors/{dataset}/test_sample_id_cache.npy')
 
-test_context_vecs = test_context_vecs[:n,:]
-test_dists = test_dists[:n,:]
-test_pkg_locality = test_pkg_locality[:n,:]
-test_proj_locality = test_proj_locality[:n,:]
-test_index_masks = test_index_masks[:n,:]
-test_lm_probs = test_lm_probs[:n]
+
+test_style_file = folder + "test.txt.style"
+
+with open(test_style_file, "r") as f:
+    test_styles = f.readlines()
+
+test_df = pd.Series(test_styles).to_frame()
+test_df.index = test_df.index.set_names(["samp_id"])
+test_df = test_df.reset_index()
+test_df = test_df.rename(columns={0:"style"})
+test_df_samp = pd.DataFrame({
+                'samp_id': test_sample_ids.ravel(),
+            })
+
+test_df_samp = test_df_samp.merge(test_df, how="left", on="samp_id").dropna()
+#n = test_df_samp["style"].value_counts().min()
+test_df_samp = test_df_samp.groupby("style").sample(n=n, random_state=1, replace=True)
+
+test_indices = test_df_samp.index.tolist()
+
+test_context_vecs = test_context_vecs[test_indices]
+test_dists = test_dists[test_indices]
+test_pkg_locality = test_pkg_locality[test_indices]
+test_proj_locality = test_proj_locality[test_indices]
+test_lm_probs = test_lm_probs[test_indices]
+test_index_masks = test_index_masks[test_indices]
 
 test_context_vecs = torch.from_numpy(test_context_vecs).float()
 test_dists = torch.from_numpy(test_dists).float()
