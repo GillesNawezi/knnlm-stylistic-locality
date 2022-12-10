@@ -139,8 +139,8 @@ class KNN_Dstore(object):
                 print("Style Data")
                 self.package_locality_features = np.memmap(
                     f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(69300, 403095))
-                self.project_locality_features = np.memmap(
-                    f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(69300, 403095))
+                #self.project_locality_features = np.memmap(
+                #    f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(69300, 403095))
             elif "style_category" in args.dstore_filename:
                 #Style + Category
                 self.package_locality_features = np.memmap(
@@ -171,8 +171,8 @@ class KNN_Dstore(object):
                 print(f"Load Style Source Data")
                 self.package_locality_features = np.memmap(
                     f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(58905, 392700))
-                self.project_locality_features = np.memmap(
-                    f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(58905, 392700))
+                #self.project_locality_features = np.memmap(
+                #    f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(58905, 392700))
             elif "style_category" in args.dstore_filename:
                 #Style + Category
                 self.package_locality_features = np.memmap(
