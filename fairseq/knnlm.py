@@ -389,16 +389,23 @@ class KNN_Dstore(object):
                 #                  locality_feat[2] * (params[:, 3][:, None] * dists + params[:, 4][:, None])
                 probs = utils.log_softmax(modified_dists, dim=-1)
             elif 'style_source' in self.args.dstore_filename:
-                locality_indicator = project_locality + package_locality
+                #locality_indicator = project_locality + package_locality
+                locality_indicator = package_locality
+
                 locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=3).permute(2, 0, 1)
                 
                 params = self.adaptive_model.model(queries[tgt != pad_idx])
-                
+                """
                 modified_dists = locality_feat[0] * (params[:, 0][:, None] * dists) + \
                                  locality_feat[1] * (params[:, 1][:, None] * dists + params[:, 2][:, None]) + \
                                  locality_feat[2] * (params[:, 3][:, None] * dists + params[:, 4][:, None])
+                """
+                
+                modified_dists = locality_feat[0] * (params[:, 0][:, None] * dists) + \
+                                 locality_feat[1] * (params[:, 1][:, None] * dists + params[:, 2][:, None]) 
                 
                 probs = utils.log_softmax(modified_dists, dim=-1)
+                print("Only Style")
             elif 'style_category' in self.args.dstore_filename:
                 locality_indicator = project_locality + package_locality
                 locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=3).permute(2, 0, 1)
