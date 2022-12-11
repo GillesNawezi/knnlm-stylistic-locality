@@ -227,8 +227,6 @@ for i in range(epochs):
                             sample[3],
                             sample[4])
         loss = torch.mean(-outputs)
-        print(loss)
-        x=y
         loss.backward()
         optimizer.step()
         epoch_loss += loss.item() * bsz
