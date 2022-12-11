@@ -138,15 +138,15 @@ class KNN_Dstore(object):
                 #Style + Source
                 print("Source Data")
                 self.package_locality_features = np.memmap(
+                    f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(69300, 403095))
+                self.project_locality_features = np.memmap(
                     f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(69300, 403095))
-                #self.project_locality_features = np.memmap(
-                #    f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(69300, 403095))
             elif "style_category" in args.dstore_filename:
                 #Style + Category
                 self.package_locality_features = np.memmap(
-                    f'examples/language_model/style_category_dataset/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(69300, 403095))
-                self.project_locality_features = np.memmap(
                     f'examples/language_model/style_category_dataset/{args.gen_subset}train.txt.category.npy', dtype='int8', mode='r', shape=(69300, 403095))
+                #self.project_locality_features = np.memmap(
+                #    f'examples/language_model/style_category_dataset/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(69300, 403095))
             elif "style" in args.dstore_filename:
                 # Stylistic Locality
                 print("Load Styles")
@@ -175,9 +175,9 @@ class KNN_Dstore(object):
             elif "style_category" in args.dstore_filename:
                 #Style + Category
                 self.package_locality_features = np.memmap(
-                    f'examples/language_model/style_category_dataset/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(58905, 392700))
-                self.project_locality_features = np.memmap(
                     f'examples/language_model/style_category_dataset/{args.gen_subset}train.txt.category.npy', dtype='int8', mode='r', shape=(58905, 392700))
+                #self.project_locality_features = np.memmap(
+                #    f'examples/language_model/style_category_dataset/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(58905, 392700))
             elif "style" in args.dstore_filename:
                 # Stylistic Locality
                 print("Load Styles")
@@ -387,40 +387,32 @@ class KNN_Dstore(object):
                 #                  locality_feat[2] * (params[:, 3][:, None] * dists + params[:, 4][:, None])
                 probs = utils.log_softmax(modified_dists, dim=-1)
             elif 'style_source' in self.args.dstore_filename:
-                #locality_indicator = project_locality + package_locality
-                locality_indicator = package_locality
+                locality_indicator = project_locality + package_locality
 
                 locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=3).permute(2, 0, 1)
                 
                 params = self.adaptive_model.model(queries[tgt != pad_idx])
-                """
+                
                 modified_dists = locality_feat[0] * (params[:, 0][:, None] * dists) + \
                                  locality_feat[1] * (params[:, 1][:, None] * dists + params[:, 2][:, None]) + \
                                  locality_feat[2] * (params[:, 3][:, None] * dists + params[:, 4][:, None])
-                """
-                
-                modified_dists = locality_feat[0] * (params[:, 0][:, None] * dists) + \
-                                 locality_feat[1] * (params[:, 1][:, None] * dists + params[:, 2][:, None]) 
                 
                 probs = utils.log_softmax(modified_dists, dim=-1)
-                print("Only Style")
+
             elif 'style_category' in self.args.dstore_filename:
                 locality_indicator = project_locality + package_locality
                 locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=3).permute(2, 0, 1)
-
-                """
-                modified_dists = locality_feat[0] * (0.0223 * dists) \
-                                 + locality_feat[1] * (0.0326 * dists + 3.6268) \
-                                 + locality_feat[2] * (0.0411 * dists + 5.9197)
-                """
-                
                 
                 params = self.adaptive_model.model(queries[tgt != pad_idx])
                 
+                """
                 modified_dists = locality_feat[0] * (params[:, 0][:, None] * dists) + \
                                  locality_feat[1] * (params[:, 1][:, None] * dists + params[:, 2][:, None]) + \
                                  locality_feat[2] * (params[:, 3][:, None] * dists + params[:, 4][:, None])
-                
+                """
+                modified_dists = locality_feat[0] * (params[:, 0][:, None] * dists) + \
+                                 locality_feat[1] * (params[:, 1][:, None] * dists + params[:, 2][:, None]) 
+
                 probs = utils.log_softmax(modified_dists, dim=-1)
             elif 'style' in self.args.dstore_filename:
                 locality_indicator = package_locality
