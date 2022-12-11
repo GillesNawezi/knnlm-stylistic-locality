@@ -144,9 +144,9 @@ class KNN_Dstore(object):
             elif "style_category" in args.dstore_filename:
                 #Style + Category
                 self.package_locality_features = np.memmap(
-                    f'examples/language_model/style_category_dataset/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(69300, 403059))
+                    f'examples/language_model/style_category_dataset/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(69300, 403095))
                 self.project_locality_features = np.memmap(
-                    f'examples/language_model/style_category_dataset/{args.gen_subset}train.txt.category.npy', dtype='int8', mode='r', shape=(69300, 403059))
+                    f'examples/language_model/style_category_dataset/{args.gen_subset}train.txt.category.npy', dtype='int8', mode='r', shape=(69300, 403095))
             elif "style" in args.dstore_filename:
                 # Stylistic Locality
                 print("Load Styles")
@@ -216,8 +216,7 @@ class KNN_Dstore(object):
                 #self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64, num_outputs=5, context_dim=1024).cuda()
                 self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64).cuda()
             elif 'style_category' in args.dstore_filename:
-                self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64, num_outputs=5,
-                                                   context_dim=1024).cuda()
+                self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64).cuda()
             else:
                 self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64).cuda()
             self.adaptive_model.load_state_dict(torch.load(args.path.rsplit('/', 1)[0] + '/adaptive_model_weights.pt'))
