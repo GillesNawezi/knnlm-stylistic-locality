@@ -230,7 +230,7 @@ class KNN_Dstore(object):
                 self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64, num_outputs=5,
                                                    context_dim=512).cuda()
             elif 'style_source_category' in args.dstore_filename:
-                self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64).cuda()
+                self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64, num_outputs=13).cuda()
             elif 'style_source' in args.dstore_filename:
                 #self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64, num_outputs=5, context_dim=1024).cuda()
                 self.adaptive_model = WeightedDist(nlayers=2, hidden_units=64).cuda()
