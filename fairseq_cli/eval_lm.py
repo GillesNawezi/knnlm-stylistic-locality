@@ -329,6 +329,11 @@ def main(parsed_args):
                     np.concatenate(knn_dstore.package_locality_cache))
         except Exception as e:
             print(f"Error While Saving Package Tensor {e}")
+        try:
+            np.save('saved_tensors/{}/{}_cat_locality_cache.npy'.format(dir_name, split_name),
+                    np.concatenate(knn_dstore.category_locality_cache))
+        except Exception as e:
+            print(f"Error While Saving Category Tensor {e}")
             
         np.save('saved_tensors/{}/{}_proj_rank_cache.npy'.format(dir_name, split_name),
                 np.concatenate(knn_dstore.rank_cache))
