@@ -108,7 +108,7 @@ class WeightedDist(torch.nn.Module):
 
         return torch.logsumexp(probs + idx_mask, dim=-1), params
 
-n=50000
+n=30000
 num_retrieved = 1024
 dataset = "style_source_category_dataset"
 global_path = str(pathlib.Path(__file__).parent.resolve()) + "/"
@@ -142,7 +142,7 @@ df_samp = pd.DataFrame({
 df_samp = df_samp.merge(df, how="left", on="samp_id").dropna()
 
 #n = df_samp["style"].value_counts().min()
-n=30000
+
 df_samp = df_samp.groupby("style").sample(n=n, random_state=1, replace=True)
 
 indices = df_samp.index.tolist()
@@ -211,7 +211,7 @@ test_lm_probs = torch.from_numpy(test_lm_probs).float().cuda()
 valid_dataset = TensorDataset(context_vecs, dists, pkg_locality, proj_locality, cat_locality, index_masks)
 
 test_dataset = TensorDataset(test_context_vecs, test_dists, test_pkg_locality, test_proj_locality, test_cat_locality, test_index_masks)
-bsz = 10000
+bsz = 5000 #10000
 valid_dataloader = DataLoader(valid_dataset, batch_size=bsz, shuffle=True)
 test_dataloader = DataLoader(test_dataset, batch_size=bsz)
 
