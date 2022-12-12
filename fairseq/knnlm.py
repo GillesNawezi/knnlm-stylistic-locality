@@ -419,7 +419,7 @@ class KNN_Dstore(object):
             elif 'style_source_category' in self.args.dstore_filename:
                 locality_indicator = project_locality + 2 * package_locality + 4 * category_locality
         
-                locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=7).permute(2, 0, 1)
+                locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=8).permute(2, 0, 1)
 
                 params = self.adaptive_model.model(queries[tgt != pad_idx])
 
