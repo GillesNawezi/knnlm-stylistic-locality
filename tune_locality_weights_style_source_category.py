@@ -158,6 +158,7 @@ context_vecs = torch.from_numpy(context_vecs).float()
 dists = torch.from_numpy(dists).float()
 pkg_locality = torch.from_numpy(pkg_locality)
 proj_locality = torch.from_numpy(proj_locality)
+cat_locality = torch.from_numpy(cat_locality)
 index_masks = torch.from_numpy(index_masks)
 
 
