@@ -400,7 +400,8 @@ class KNN_Dstore(object):
                 probs = utils.log_softmax(modified_dists, dim=-1)
 
             elif 'style_category' in self.args.dstore_filename:
-                locality_indicator = project_locality + package_locality
+                #locality_indicator = project_locality + package_locality
+                locality_indicator = package_locality
                 locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=3).permute(2, 0, 1)
                 
                 params = self.adaptive_model.model(queries[tgt != pad_idx])
