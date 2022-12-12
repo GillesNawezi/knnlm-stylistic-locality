@@ -88,6 +88,7 @@ class WeightedDist(torch.nn.Module):
         dist = dist.cuda()
         pkg_l = pkg_l.cuda()
         proj_l = proj_l.cuda()
+        cat_l = cat_l.cuda()
         idx_mask = idx_mask.cuda()
         
         #locality_indicator = proj_l + 2 * pkg_l
