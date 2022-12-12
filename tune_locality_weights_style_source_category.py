@@ -208,10 +208,18 @@ test_cat_locality = torch.from_numpy(test_cat_locality)
 test_index_masks = torch.from_numpy(test_index_masks)
 test_lm_probs = torch.from_numpy(test_lm_probs).float().cuda()
 
+
+print(context_vecs.shape)
+print(dists.shape)
+print(pkg_locality.shape)
+print(proj_locality.shape)
+print(cat_locality.shape)
+print(index_masks.shape)
+
 valid_dataset = TensorDataset(context_vecs, dists, pkg_locality, proj_locality, cat_locality, index_masks)
 
 test_dataset = TensorDataset(test_context_vecs, test_dists, test_pkg_locality, test_proj_locality, test_cat_locality, test_index_masks)
-bsz = 5000 #10000
+bsz = 10000 #10000
 valid_dataloader = DataLoader(valid_dataset, batch_size=bsz, shuffle=True)
 test_dataloader = DataLoader(test_dataset, batch_size=bsz)
 
