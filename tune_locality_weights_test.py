@@ -106,6 +106,7 @@ class WeightedDist(torch.nn.Module):
                                   locality_feat[2] * (params[:, 3][:, None] * dist + params[:, 4][:, None]), dim=-1)
                                   
         print(f"Probs Shape:{probs.shape}")
+        x=y
         
         # probs = utils.log_softmax(self.w0 * dist + self.w2 * pkg_l, dim=-1)
         # inp = torch.stack([dist, proj_l, pkg_l], dim=2)
@@ -115,7 +116,7 @@ class WeightedDist(torch.nn.Module):
 
         return torch.logsumexp(probs + idx_mask, dim=-1), params
 
-n=100000
+n=10000
 num_retrieved = 1024
 dataset = "style_source_wiki_fine_tune"
 global_path = str(pathlib.Path(__file__).parent.resolve()) + "/"
@@ -147,8 +148,6 @@ df_samp = pd.DataFrame({
 
 df_samp = df_samp.merge(df, how="left", on="samp_id").dropna()
 
-#n = df_samp["style"].value_counts().min()
-n=15000
 df_samp = df_samp.groupby("style").sample(n=n, random_state=1, replace=True)
 
 indices = df_samp.index.tolist()
