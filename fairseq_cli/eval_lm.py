@@ -225,6 +225,7 @@ def main(parsed_args):
 
                 prediction_save['topk'].append(predicted_topk)
                 prediction_save['ref'].append(tokens)
+
                 if args.add_bos_token:
                     assert hypo['tokens'][0].item() == task.target_dictionary.bos()
                     tokens = tokens[1:]
@@ -246,6 +247,29 @@ def main(parsed_args):
                 #    )
                 #    pos_scores = pos_scores[(~inf_scores).nonzero()]
 
+                # ===== Style Validation ====
+                #Weise Tokens ihrem Style zu
+                import pathlib
+                global_path = str(pathlib.Path(__file__).parent.resolve()) + "/"
+                folder = global_path + "examples/language_model/style_source_dataset/"
+                valid_style_file = folder + "valid.txt.style"
+
+                with open(valid_style_file, "r") as f:
+                    styles = f.readlines()
+
+
+                df = pd.Series(styles).to_frame()
+                df.index = df.index.set_names(["samp_id"])
+                df = df.reset_index()
+                df = df.rename(columns={0:"style"})
+
+                #Erstelle Liste für jeden style
+                print(hypos.keys())
+                print(task.source_dictionary.dummy_sentence(7))
+                print("\n")
+                print(tokens.shape)
+                x=y
+                # ===== End style validation======
                     
                 score_sum += pos_scores.sum().cpu()
                 if pd.isna(score_sum.item()):
