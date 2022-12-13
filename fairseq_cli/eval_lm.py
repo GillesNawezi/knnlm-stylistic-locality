@@ -250,7 +250,7 @@ def main(parsed_args):
                 # ===== Style Validation ====
                 #Weise Tokens ihrem Style zu
                 import pathlib
-                global_path = str(pathlib.Path(__file__).parent.resolve()) + "/"
+                global_path = str(pathlib.Path(__file__).parent.resolve()) + "/../"
                 folder = global_path + "examples/language_model/style_source_dataset/"
                 valid_style_file = folder + "valid.txt.style"
 
