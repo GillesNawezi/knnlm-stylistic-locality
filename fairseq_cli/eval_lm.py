@@ -73,20 +73,35 @@ def main(parsed_args):
     folder = global_path + "examples/language_model/style_source_dataset/"
     valid_style_file = folder + "valid.txt.style"
 
+    valid_source_file = folder + "valid.txt.source"
+
     with open(valid_style_file, "r") as f:
         styles = f.readlines()
+        
+    with open(valid_source_file, "r") as f:
+        sources = f.readlines()
 
     df = pd.Series(styles).to_frame()
     df.index = df.index.set_names(["samp_id"])
     df = df.reset_index()
     df = df.rename(columns={0:"style"})
+    df["source"] = sources
 
-    styles = df["style"].unique.tolist()
+    styles = df["style"].unique().tolist()
     print(f"Styles in data:{styles}")
 
     style_performances = {}
     for style in styles:
         style_performances[style] = {
+                                     "score_sum":0,
+                                     "count":0
+                                     }
+
+    sources = df["source"].unique().tolist()
+    print(f"Sources in data:{styles}")
+    source_performances = {}
+    for source in sources:
+        source_performances[source] = {
                                      "score_sum":0,
                                      "count":0
                                      }
@@ -275,10 +290,14 @@ def main(parsed_args):
                 #Weise Tokens ihrem Style zu
 
                 style = df.query(f"samp_id=={sample_id}")["style"].values[0]
-                print("style")
+
                 style_performances[style]["score_sum"] += pos_scores.sum().cpu()
                 style_performances[style]["count"] += pos_scores.numel() - skipped_toks
                 
+                source = df.query(f"samp_id=={sample_id}")["source"].values[0]
+
+                source_performances[source]["score_sum"] += pos_scores.sum().cpu()
+                source_performances[source]["count"] += pos_scores.numel() - skipped_toks
 
                 # ===== Test Dict ====
                 #sent = task.source_dictionary.dummy_sentence(7)
@@ -352,6 +371,20 @@ def main(parsed_args):
         print(f"##### {style} #####")
         logger.info('Loss (base 2): {:.4f}, Perplexity: {:.2f}'.format(
             avg_nll_loss_style, 2 ** avg_nll_loss_style
+        ))
+        print("\n")
+    
+    print("Performance by Source:")
+    for source,values in source_performances.items():
+        
+        score_sum_source = values["score_sum"]
+        count_source = values["count"]
+
+        avg_nll_loss_source = -score_sum_source / count_source / math.log(2)  # convert to base 2
+        print("\n")
+        print(f"##### {source} #####")
+        logger.info('Loss (base 2): {:.4f}, Perplexity: {:.2f}'.format(
+            avg_nll_loss_source, 2 ** avg_nll_loss_source
         ))
         print("\n")
 
