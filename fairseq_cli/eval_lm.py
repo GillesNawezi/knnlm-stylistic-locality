@@ -67,6 +67,30 @@ def main(parsed_args):
 
     task = tasks.setup_task(parsed_args)
 
+    #Track performance per Style
+    import pathlib
+    global_path = str(pathlib.Path(__file__).parent.resolve()) + "/../"
+    folder = global_path + "examples/language_model/style_source_dataset/"
+    valid_style_file = folder + "valid.txt.style"
+
+    with open(valid_style_file, "r") as f:
+        styles = f.readlines()
+
+    df = pd.Series(styles).to_frame()
+    df.index = df.index.set_names(["samp_id"])
+    df = df.reset_index()
+    df = df.rename(columns={0:"style"})
+
+    styles = df["style"].unique.tolist()
+    print(f"Styles in data:{styles}")
+
+    style_performances = {}
+    for style in styles:
+        style_performances[style] = {
+                                     "score_sum":0,
+                                     "count":0
+                                     }
+
     # Load ensemble
     logger.info('loading model(s) from {}'.format(parsed_args.path))
     models, args = checkpoint_utils.load_model_ensemble(
@@ -249,26 +273,17 @@ def main(parsed_args):
 
                 # ===== Style Validation ====
                 #Weise Tokens ihrem Style zu
-                import pathlib
-                global_path = str(pathlib.Path(__file__).parent.resolve()) + "/../"
-                folder = global_path + "examples/language_model/style_source_dataset/"
-                valid_style_file = folder + "valid.txt.style"
 
-                with open(valid_style_file, "r") as f:
-                    styles = f.readlines()
+                style = df.query(f"samp_id=={sample_id}")["style"].values[0]
+                print("style")
+                style_performances[style]["score_sum"] += pos_scores.sum().cpu()
+                style_performances[style]["count"] += pos_scores.numel() - skipped_toks
+                
 
-
-                df = pd.Series(styles).to_frame()
-                df.index = df.index.set_names(["samp_id"])
-                df = df.reset_index()
-                df = df.rename(columns={0:"style"})
-
-                #Erstelle Liste für jeden style
-                print(hypos.keys())
-                print(task.source_dictionary.dummy_sentence(7))
-                print("\n")
-                print(tokens.shape)
-                x=y
+                # ===== Test Dict ====
+                #sent = task.source_dictionary.dummy_sentence(7)
+                #str_sent = task.source_dictionary.string(tensor=sent)
+                #print(str_sent)
                 # ===== End style validation======
                     
                 score_sum += pos_scores.sum().cpu()
@@ -325,6 +340,22 @@ def main(parsed_args):
     logger.info('Loss (base 2): {:.4f}, Perplexity: {:.2f}'.format(
         avg_nll_loss, 2 ** avg_nll_loss
     ))
+
+    print("Performance by Style:")
+    for style,values in style_performances.items():
+        
+        score_sum_style = values["score_sum"]
+        count_style = values["count"]
+
+        avg_nll_loss_style = -score_sum_style / count_style / math.log(2)  # convert to base 2
+        print("\n")
+        print(f"##### {style} #####")
+        logger.info('Loss (base 2): {:.4f}, Perplexity: {:.2f}'.format(
+            avg_nll_loss_style, 2 ** avg_nll_loss_style
+        ))
+        print("\n")
+
+
 
     # save prediction result
     torch.save(prediction_save, 'prediction.pt')
