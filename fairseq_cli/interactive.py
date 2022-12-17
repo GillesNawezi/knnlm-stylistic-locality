@@ -19,6 +19,7 @@ import torch
 from fairseq import checkpoint_utils, options, tasks, utils
 from fairseq.data import encoders
 
+from fairseq.knnlm import KNN_Dstore
 
 logging.basicConfig(
     format='%(asctime)s | %(levelname)s | %(name)s | %(message)s',
@@ -110,6 +111,9 @@ def main(args):
             model.half()
         if use_cuda:
             model.cuda()
+    
+    if args.knnlm:
+        knn_dstore = KNN_Dstore(args)
 
     # Initialize generator
     generator = task.build_generator(args)
@@ -161,7 +165,10 @@ def main(args):
                     'src_lengths': src_lengths,
                 },
             }
-            translations = task.inference_step(generator, models, sample, args=args)
+            translations = task.inference_step(generator, models, sample, 
+                                               #kwargs
+                                               args=args, knn_dstore=knn_dstore)
+                                               
             for i, (id, hypos) in enumerate(zip(batch.ids.tolist(), translations)):
                 src_tokens_i = utils.strip_pad(src_tokens[i], tgt_dict.pad())
                 results.append((start_id + id, src_tokens_i, hypos))
