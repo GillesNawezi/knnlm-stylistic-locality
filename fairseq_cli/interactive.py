@@ -111,9 +111,6 @@ def main(args):
             model.half()
         if use_cuda:
             model.cuda()
-    
-    if args.knnlm:
-        knn_dstore = KNN_Dstore(args)
 
     # Initialize generator
     generator = task.build_generator(args)
@@ -145,6 +142,9 @@ def main(args):
         *[model.max_positions() for model in models]
     )
 
+    if args.knnlm:
+        knn_dstore = KNN_Dstore(args)
+
     if args.buffer_size > 1:
         logger.info('Sentence buffer size: %s', args.buffer_size)
     logger.info('NOTE: hypothesis and token scores are output in base 2')
@@ -168,7 +168,7 @@ def main(args):
             translations = task.inference_step(generator, models, sample, 
                                                #kwargs
                                                args=args, knn_dstore=knn_dstore)
-                                               
+
             for i, (id, hypos) in enumerate(zip(batch.ids.tolist(), translations)):
                 src_tokens_i = utils.strip_pad(src_tokens[i], tgt_dict.pad())
                 results.append((start_id + id, src_tokens_i, hypos))
