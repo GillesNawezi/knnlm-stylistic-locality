@@ -586,6 +586,7 @@ class EnsembleModel(torch.nn.Module):
         probs = model.get_normalized_probs(decoder_out, log_probs=log_probs)
         probs = probs[:, -1, :]
 
+        # ====== Modify Probs with Dstore ======
         args = kwargs['args']
         if args.knnlm:
             dstore = kwargs['knn_dstore']

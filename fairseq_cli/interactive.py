@@ -161,7 +161,7 @@ def main(args):
                     'src_lengths': src_lengths,
                 },
             }
-            translations = task.inference_step(generator, models, sample)
+            translations = task.inference_step(generator, models, sample, args=args)
             for i, (id, hypos) in enumerate(zip(batch.ids.tolist(), translations)):
                 src_tokens_i = utils.strip_pad(src_tokens[i], tgt_dict.pad())
                 results.append((start_id + id, src_tokens_i, hypos))
