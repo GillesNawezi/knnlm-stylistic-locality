@@ -6,10 +6,12 @@
 import math
 
 import torch
+import numpy as np
 
 from fairseq import search, utils
 from fairseq.data import data_utils
 from fairseq.models import FairseqIncrementalDecoder
+
 
 
 class SequenceGenerator(object):
@@ -272,8 +274,10 @@ class SequenceGenerator(object):
                 encoder_outs = model.reorder_encoder_out(encoder_outs, reorder_state)
 
             lprobs, avg_attn_scores = model.forward_decoder(
-                tokens[:, :step + 1], encoder_outs, temperature=self.temperature,
+                tokens[:, :step + 1], encoder_outs, temperature=self.temperature, 
+                **kwargs
             )
+
             lprobs[lprobs != lprobs] = -math.inf
 
             lprobs[:, self.pad] = -math.inf  # never select pad
@@ -525,7 +529,7 @@ class EnsembleModel(torch.nn.Module):
         return [model.encoder(**encoder_input) for model in self.models]
 
     @torch.no_grad()
-    def forward_decoder(self, tokens, encoder_outs, temperature=1.):
+    def forward_decoder(self, tokens, encoder_outs, temperature=1., **kwargs):
         if len(self.models) == 1:
             return self._decode_one(
                 tokens,
@@ -534,6 +538,7 @@ class EnsembleModel(torch.nn.Module):
                 self.incremental_states,
                 log_probs=True,
                 temperature=temperature,
+                **kwargs
             )
 
         log_probs = []
@@ -560,7 +565,7 @@ class EnsembleModel(torch.nn.Module):
 
     def _decode_one(
         self, tokens, model, encoder_out, incremental_states, log_probs,
-        temperature=1.,
+        temperature=1., **kwargs
     ):
         if self.incremental_states is not None:
             decoder_out = list(model.forward_decoder(
@@ -580,7 +585,30 @@ class EnsembleModel(torch.nn.Module):
             attn = attn[:, -1, :]
         probs = model.get_normalized_probs(decoder_out, log_probs=log_probs)
         probs = probs[:, -1, :]
+
+        args = kwargs['args']
+        if args.knnlm:
+            dstore = kwargs['knn_dstore']
+            queries = decoder_out[1][args.knn_keytype] # (T, B, C+S)
+            yhat_knn_vocab_prob = dstore.run_query_interactive(queries, vocab_size=probs.shape[-1]) # (T * B, V)
+
+            if args.fp16:
+                yhat_knn_vocab_prob = yhat_knn_vocab_prob.half()
+                probs = probs.half()
+
+            def combine_knn_and_vocab_probs(knn_p, vocab_p, coeff):
+                combine_probs = torch.stack([vocab_p, knn_p], dim=0)
+                coeffs = torch.ones_like(combine_probs)
+                coeffs[0] = np.log(1 - coeff)
+                coeffs[1] = np.log(coeff)
+                curr_prob = torch.logsumexp(combine_probs + coeffs, dim=0)
+
+                return curr_prob
+
+            probs = combine_knn_and_vocab_probs(yhat_knn_vocab_prob, probs, args.lmbda) # (T * B, V)
+            
         return probs, attn
+
 
     def reorder_encoder_out(self, encoder_outs, new_order):
         if not self.has_encoder():
