@@ -271,7 +271,7 @@ class LanguageModelingTask(FairseqTask):
             sizes=[np.array(src_lengths)],
         )
 
-    def inference_step(self, generator, models, sample, prefix_tokens=None):
+    def inference_step(self, generator, models, sample, prefix_tokens=None, args=None):
         with torch.no_grad():
             # Generation will always be conditioned on bos_token
             if getattr(self.args, "add_bos_token", False):
@@ -287,7 +287,7 @@ class LanguageModelingTask(FairseqTask):
                     prefix_tokens = prefix_tokens[:, 1:]
 
             return generator.generate(
-                models, sample, prefix_tokens=prefix_tokens, bos_token=bos_token,
+                models, sample, prefix_tokens=prefix_tokens, bos_token=bos_token, args=args
             )
 
     @property
