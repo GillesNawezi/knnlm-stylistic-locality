@@ -134,7 +134,7 @@ class KNN_Dstore(object):
         if "valid" in args.dstore_filename:
             args.gen_subset = "valid"
         print(f"Subset: {args.gen_subset}")
-        
+
         if 'test' in args.gen_subset:
             if 'java' in args.dstore_filename:
                 self.package_locality_features = np.load('examples/language_model/java/java_test_pre.original_path.npy')
@@ -258,6 +258,7 @@ class KNN_Dstore(object):
         total_block_count = 0
 
         dists, knns = self.index.search(queries.detach().cpu().float().numpy(), self.k + redundancy)
+        
         retrieved_sample_ids = self.inv_token_sample_map[knns]
 
         for x, y, i, r in zip(knns, dists, sample_ids, retrieved_sample_ids):
@@ -277,10 +278,7 @@ class KNN_Dstore(object):
             new_dists.append(new_y)
         dists = np.array(new_dists)
         knns = np.array(new_knns)
-        # print(dists.shape)
-        # print(knns.shape)
-        # print(total_block_count)
-        # print(dists,knns)
+
         return dists, knns
 
     def get_knn_log_prob(self, queries, tgt, pad_idx, sample_ids=None, task=None,
@@ -549,3 +547,38 @@ class KNN_Dstore(object):
         else:
             # TxBx1
             return full_yhat_knn_prob.view(qshape[0], qshape[1], 1), None
+
+
+    def get_knn_log_prob_generate(self, queries):
+        def dist_func(d, k, q, function=None):
+            if not function:
+                # Default behavior for L2 metric is to recompute distances.
+                # Default behavior for IP metric is to return faiss distances.
+                qsize = q.shape
+                if self.metric_type == 'l2':
+                    start = time.time()
+                    knns_vecs = torch.from_numpy(self.keys[k]).cuda().view(qsize[0], self.k, -1)
+                    if self.half:
+                        knns_vecs = knns_vecs.half()
+                    query_vecs = q.view(qsize[0], 1, qsize[1]).repeat(1, self.k, 1)
+                    l2 = torch.sum((query_vecs - knns_vecs.detach()) ** 2, dim=2)
+                    return -1 * l2
+                return d
+
+            if function == 'dot':
+                qsize = q.shape
+                return (torch.from_numpy(self.keys[k]).cuda() * q.view(qsize[0], 1, qsize[1])).sum(dim=-1)
+
+            if function == 'do_not_recomp_l2':
+                return -1 * d
+
+            raise ValueError("Invalid knn similarity function!")
+
+        # queries  are TxBxC
+        # reshape: (TxB)xC
+        qshape = queries.shape
+        queries = queries.view(-1, qshape[-1])
+
+        dists, knns = self.get_knns(queries)
+        print(dists)
+        print(knns)

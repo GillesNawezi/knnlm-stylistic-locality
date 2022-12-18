@@ -591,7 +591,7 @@ class EnsembleModel(torch.nn.Module):
         if args.knnlm:
             dstore = kwargs['knn_dstore']
             queries = decoder_out[1][args.knn_keytype] # (T, B, C+S)
-            yhat_knn_vocab_prob = dstore.run_query_interactive(queries, vocab_size=probs.shape[-1]) # (T * B, V)
+            yhat_knn_vocab_prob = dstore.get_knn_log_prob_generate(queries, vocab_size=probs.shape[-1]) # (T * B, V)
 
             if args.fp16:
                 yhat_knn_vocab_prob = yhat_knn_vocab_prob.half()
