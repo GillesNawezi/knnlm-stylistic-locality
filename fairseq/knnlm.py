@@ -129,8 +129,12 @@ class KNN_Dstore(object):
         self.original_tgts = []
 
         # read in the locality feature from npy file
+
+        print(f"DStore Filename: {args.dstore_filename}")
+        if "valid" in args.dstore_filename:
+            args.gen_subset = "valid"
         print(f"Subset: {args.gen_subset}")
-        print(f"Subset: {args.dstore_filename}")
+        
         if 'test' in args.gen_subset:
             if 'java' in args.dstore_filename:
                 self.package_locality_features = np.load('examples/language_model/java/java_test_pre.original_path.npy')
