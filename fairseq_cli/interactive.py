@@ -144,7 +144,7 @@ def main(args):
 
     if args.knnlm:
         args.decoder_embed_dim = getattr(args, 'decoder_embed_dim', 1024)
-        args["dict"] = tgt_dict
+        args.dict = getattr(args, 'dict', tgt_dict)
         knn_dstore = KNN_Dstore(args)
 
     if args.buffer_size > 1:
