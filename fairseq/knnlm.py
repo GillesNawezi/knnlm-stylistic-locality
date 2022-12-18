@@ -50,6 +50,7 @@ class KNN_Dstore(object):
         self.sim_func = args.knn_sim_func
         self.dstore_fp16 = args.dstore_fp16
         self.index = self.setup_faiss(args)
+        self.dict = args.dict
         self.args = args
 
     def setup_faiss(self, args):
@@ -586,12 +587,25 @@ class KNN_Dstore(object):
 
         dists, knns = self.index.search(queries.detach().cpu().float().numpy(), self.k + redundancy)
         
-        print(dists)
-        print(knns)
-        x=y
         retrieved_sample_ids = self.inv_token_sample_map[knns]
 
-        for x, y, i in zip(knns, dists, retrieved_sample_ids):
+        print("\nqueries")
+        print(queries)
+        print(queries.shape)
+        
+        print("\ndists")
+        print(dists)
+        print(dists.shape)
+        
+        print("\nknns")
+        print(knns)
+        print(knns.shape)
+
+        print("\nretrieved_sample_ids")
+        print(retrieved_sample_ids)
+        print(retrieved_sample_ids.shape)
+
+        for x, y, i in zip(knns, dists, queries):
             # mask off current query sample
             current_sample_range = self.token_sample_map[i.item()]
             current_sample_mask = (x < current_sample_range[0]) | (x >= current_sample_range[1])
@@ -606,7 +620,23 @@ class KNN_Dstore(object):
                 print('Warining: less than k at', len(new_x))
             new_knns.append(new_x)
             new_dists.append(new_y)
+
         dists = np.array(new_dists)
         knns = np.array(new_knns)
 
-        return dists, knns
+        # save if retrieved is eq to actual tgt?
+        knn_token_ids = self.vals[knns].squeeze(-1)
+        correctness = knn_token_ids == \
+                      np.expand_dims(reduced_tgt.cpu().numpy(), 1).repeat(knns.shape[1], axis=1)
+        correctness = correctness.astype("int8")
+        flat_correctness = correctness.flatten()
+        # # (T_reducedxB)xK
+        dists = torch.from_numpy(dists).cuda()
+        dists = dist_func(dists, knns, queries, function=self.sim_func)
+
+        flat_rank = np.tile(np.arange(1, dists.shape[1] + 1, dtype='int16'), dists.shape[0])
+        flat_dists = dists.detach().cpu().numpy().flatten()
+        flat_knns = knns.flatten()
+
+
+        
