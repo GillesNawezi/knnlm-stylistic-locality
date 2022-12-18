@@ -579,6 +579,34 @@ class KNN_Dstore(object):
         qshape = queries.shape
         queries = queries.view(-1, qshape[-1])
 
-        dists, knns = self.get_knns(queries)
+        redundancy = 2048
+        new_knns = []
+        new_dists = []
+        total_block_count = 0
+
+        dists, knns = self.index.search(queries.detach().cpu().float().numpy(), self.k + redundancy)
+        
         print(dists)
         print(knns)
+        x=y
+        retrieved_sample_ids = self.inv_token_sample_map[knns]
+
+        for x, y, i in zip(knns, dists, retrieved_sample_ids):
+            # mask off current query sample
+            current_sample_range = self.token_sample_map[i.item()]
+            current_sample_mask = (x < current_sample_range[0]) | (x >= current_sample_range[1])
+            new_x = x[current_sample_mask]
+            new_y = y[current_sample_mask]
+            total_block_count += self.k + redundancy - len(new_x)
+
+            new_x = new_x[:self.k]
+            new_y = new_y[:self.k]
+
+            if len(new_x) < self.k:
+                print('Warining: less than k at', len(new_x))
+            new_knns.append(new_x)
+            new_dists.append(new_y)
+        dists = np.array(new_dists)
+        knns = np.array(new_knns)
+
+        return dists, knns
