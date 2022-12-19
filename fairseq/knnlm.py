@@ -681,7 +681,7 @@ class KNN_Dstore(object):
         print(f"knns  shape {knns.shape}")
 
         idx = self.styles_dict[style]
-        sample_ids = torch.FloatTensor([idx])
+        sample_ids = torch.LongTensor([idx])
 
         token_sample_ids = sample_ids.repeat(qshape[0], 1).view(-1)
         reduced_token_sample_ids = token_sample_ids.cpu()
