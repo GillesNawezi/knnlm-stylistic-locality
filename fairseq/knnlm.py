@@ -623,17 +623,10 @@ class KNN_Dstore(object):
 
         # save if retrieved is eq to actual tgt?
         knn_token_ids = self.vals[knns].squeeze(-1)
-        correctness = knn_token_ids == \
-                      np.expand_dims(reduced_tgt.cpu().numpy(), 1).repeat(knns.shape[1], axis=1)
-        correctness = correctness.astype("int8")
-        flat_correctness = correctness.flatten()
+ 
         # # (T_reducedxB)xK
         dists = torch.from_numpy(dists).cuda()
         dists = dist_func(dists, knns, queries, function=self.sim_func)
-
-        flat_rank = np.tile(np.arange(1, dists.shape[1] + 1, dtype='int16'), dists.shape[0])
-        flat_dists = dists.detach().cpu().numpy().flatten()
-        flat_knns = knns.flatten()
 
         probs = utils.log_softmax(dists, dim=-1)
         knn_token_ids = torch.from_numpy(knn_token_ids).long().cuda()

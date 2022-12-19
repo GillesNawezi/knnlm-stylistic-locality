@@ -591,12 +591,14 @@ class EnsembleModel(torch.nn.Module):
         if args.knnlm:
             dstore = kwargs['knn_dstore']
             queries = decoder_out[1][args.knn_keytype] # (T, B, C+S)
-            yhat_knn_vocab_prob, yhat_knn_vocab_prob = dstore.get_knn_log_prob_generate(queries) # (T * B, V)
+            yhat_knn_prob, yhat_knn_vocab_prob = dstore.get_knn_log_prob_generate(queries) # (T * B, V)
+            
+            yhat_knn_vocab_prob = yhat_knn_vocab_prob[0, :]
 
             if args.fp16:
                 yhat_knn_vocab_prob = yhat_knn_vocab_prob.half()
                 probs = probs.half()
-
+            
             def combine_knn_and_vocab_probs(knn_p, vocab_p, coeff):
                 combine_probs = torch.stack([vocab_p, knn_p], dim=0)
                 coeffs = torch.ones_like(combine_probs)
@@ -605,11 +607,8 @@ class EnsembleModel(torch.nn.Module):
                 curr_prob = torch.logsumexp(combine_probs + coeffs, dim=0)
 
                 return curr_prob
-
+                
             probs = combine_knn_and_vocab_probs(yhat_knn_vocab_prob, probs, args.lmbda) # (T * B, V)
-
-            print(probs)
-            x=yasd
             
         return probs, attn
 

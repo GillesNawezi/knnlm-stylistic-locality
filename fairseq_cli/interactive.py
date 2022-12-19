@@ -146,6 +146,8 @@ def main(args):
         args.decoder_embed_dim = getattr(args, 'decoder_embed_dim', 1024)
         args.dict = getattr(args, 'dict', tgt_dict)
         knn_dstore = KNN_Dstore(args)
+    else:
+        knn_dstore = None
 
     if args.buffer_size > 1:
         logger.info('Sentence buffer size: %s', args.buffer_size)
