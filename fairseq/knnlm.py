@@ -600,7 +600,7 @@ class KNN_Dstore(object):
         dists, knns = self.index.search(queries.detach().cpu().float().numpy(), self.k + redundancy)
 
         if self.args.use_locality:
-            localities = self.load_localities(style=self.args.style, knns=knns, dists=dists)
+            localities = self.load_localities(style=self.args.style, knns=knns)
         
         retrieved_sample_ids = self.inv_token_sample_map[knns]
 
@@ -674,8 +674,12 @@ class KNN_Dstore(object):
         2. Load those locality levels
         3. Proceed as normal
         """
-
+        print(f"Load {style} localities")
         localities = {}
+
+        print("\n")
+        print(f"knns  shape {knns.shape}")
+        print(f"Load {style} localities")
 
         idx = self.styles_dict[style]
         reduced_token_sample_ids = idx
