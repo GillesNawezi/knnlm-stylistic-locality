@@ -195,9 +195,8 @@ class KNN_Dstore(object):
                 self.project_locality_features = np.memmap(
                     f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(58905, 392700))
 
+                #Load_style_data
                 if hasattr(args, 'style'):
-                    print("load_styles")
-                    # Load localities for each style
                     self.styles_dict = {}
                     file = f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.style'
 
@@ -207,12 +206,9 @@ class KNN_Dstore(object):
 
                         print(styles)
                         for style in styles:
-                            index = styles_list.index(style)
+                            style_index = styles_list.index(style)
                             style=style.strip()
-                            self.styles_dict[style] = index
-                        print(self.styles_dict)
-                        
-
+                            self.styles_dict[style] = style_index
             elif "style_category" in args.dstore_filename:
                 #Style + Category
                 self.package_locality_features = np.memmap(
@@ -247,6 +243,7 @@ class KNN_Dstore(object):
 
         # load tuned adaptive model        
         if args.use_locality:
+            
             print("Load Tuned Adaptive Model")
             print(args.path.rsplit('/', 1)[0] + '/adaptive_model_weights.pt')
 
