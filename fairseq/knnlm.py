@@ -206,12 +206,12 @@ class KNN_Dstore(object):
                         styles = set(styles_list)
 
                         print(styles)
-
                         for style in styles:
+                            style=style.strip()
                             index = styles_list.index(style)
                             self.styles_dict[style] = index
-                            print(f"The first index of {style} is {index}")
-                        x=y
+                        print(self.styles_dict)
+                        
 
             elif "style_category" in args.dstore_filename:
                 #Style + Category
