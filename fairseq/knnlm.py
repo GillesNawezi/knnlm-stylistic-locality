@@ -207,8 +207,8 @@ class KNN_Dstore(object):
 
                         print(styles)
                         for style in styles:
-                            style=style.strip()
                             index = styles_list.index(style)
+                            style=style.strip()
                             self.styles_dict[style] = index
                         print(self.styles_dict)
                         
