@@ -683,6 +683,9 @@ class KNN_Dstore(object):
         idx = self.styles_dict[style]
         sample_ids = torch.LongTensor([idx])
 
+        print(f"sample_ids")
+        print(f"sample_ids  shape {sample_ids.shape}")
+
         token_sample_ids = sample_ids.repeat(qshape[0], 1).view(-1)
         reduced_token_sample_ids = token_sample_ids.cpu()
         
@@ -693,6 +696,9 @@ class KNN_Dstore(object):
 
         localities["package_locality"] = package_locality
         localities["project_locality"] = torch.zeros_like(package_locality)
+
+        print(f"package_locality")
+        print(f"package_locality  shape {package_locality.shape}")
 
         print(package_locality)
 
