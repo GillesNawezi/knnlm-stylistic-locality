@@ -598,9 +598,6 @@ class KNN_Dstore(object):
 
         dists, knns = self.index.search(queries.detach().cpu().float().numpy(), self.k + redundancy)
 
-        if self.args.use_locality:
-            localities = self.load_localities(style=self.args.style, knns=knns, qshape=qshape)
-        
         retrieved_sample_ids = self.inv_token_sample_map[knns]
 
         for x, y in zip(knns, dists):
@@ -618,6 +615,9 @@ class KNN_Dstore(object):
 
         dists = np.array(new_dists)
         knns = np.array(new_knns)
+
+        if self.args.use_locality:
+            localities = self.load_localities(style=self.args.style, knns=knns, qshape=qshape)
 
         # save if retrieved is eq to actual tgt?
         knn_token_ids = self.vals[knns].squeeze(-1)
