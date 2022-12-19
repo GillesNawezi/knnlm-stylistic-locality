@@ -668,7 +668,7 @@ class KNN_Dstore(object):
 
 
     
-    def generate_localities(self, style, knns):
+    def load_localities(self, style, knns):
         """
         1. Get Example Ids for each style
         2. Load those locality levels
