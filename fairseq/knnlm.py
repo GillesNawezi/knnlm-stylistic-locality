@@ -605,12 +605,9 @@ class KNN_Dstore(object):
         print(retrieved_sample_ids)
         print(retrieved_sample_ids.shape)
 
-        for x, y, i in zip(knns, dists, queries):
-            # mask off current query sample
-            current_sample_range = self.token_sample_map[i.item()]
-            current_sample_mask = (x < current_sample_range[0]) | (x >= current_sample_range[1])
-            new_x = x[current_sample_mask]
-            new_y = y[current_sample_mask]
+        for x, y in zip(knns, dists):
+            new_x = x
+            new_y = y
             total_block_count += self.k + redundancy - len(new_x)
 
             new_x = new_x[:self.k]
@@ -637,6 +634,38 @@ class KNN_Dstore(object):
         flat_rank = np.tile(np.arange(1, dists.shape[1] + 1, dtype='int16'), dists.shape[0])
         flat_dists = dists.detach().cpu().numpy().flatten()
         flat_knns = knns.flatten()
+
+        probs = utils.log_softmax(dists, dim=-1)
+        knn_token_ids = torch.from_numpy(knn_token_ids).long().cuda()
+
+        # (T_reducedxB)
+        yhat_knn_prob = torch.logsumexp(probs, dim=-1).clone()
+        full_yhat_knn_prob = torch.full([qshape[0] * qshape[1]], -10000.).cuda()
+        full_yhat_knn_prob = yhat_knn_prob
+        
+        calc_vocab_prob=True
+        if calc_vocab_prob:
+            # calc all vocab item
+            vocab_size = len(self.dict)
+            yhat_knn_token_prob = torch.full([knn_token_ids.shape[0], vocab_size], -10000.).cuda()
+            for i, row in enumerate(knn_token_ids):
+                unique_token_ids = row.unique()
+                mask = torch.eq(knn_token_ids[i].repeat(unique_token_ids.shape[0], 1),
+                                unique_token_ids.unsqueeze(-1)).float()
+                mask[mask == 0] = -10000
+                mask[mask == 1] = 0
+                yhat_knn_token_prob[i, unique_token_ids] = torch.logsumexp(probs[i].repeat(unique_token_ids.shape[0], 1)
+                                                                           + mask, dim=-1).clone()
+            full_yhat_knn_token_prob = torch.full([qshape[0] * qshape[1], vocab_size], -10000.).cuda()
+            full_yhat_knn_token_prob = yhat_knn_token_prob
+            
+            print(full_yhat_knn_token_prob)
+            print(full_yhat_knn_token_prob.shape)
+            # TxBx1
+            return full_yhat_knn_prob.view(qshape[0], qshape[1], 1), full_yhat_knn_token_prob.view(qshape[0], qshape[1], vocab_size)
+        else:
+            # TxBx1
+            return full_yhat_knn_prob.view(qshape[0], qshape[1], 1), None
 
 
         
