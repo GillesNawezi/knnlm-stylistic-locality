@@ -679,10 +679,11 @@ class KNN_Dstore(object):
 
         print("\n")
         print(f"knns  shape {knns.shape}")
-        print(f"Load {style} localities")
+
+        
 
         idx = self.styles_dict[style]
-        reduced_token_sample_ids = idx
+        reduced_token_sample_ids = torch.tensor(idx, shape=(5, 1))
         
         package_locality = self.package_locality_features[
             np.tile(reduced_token_sample_ids, (knns.shape[1], 1)).T,
@@ -691,6 +692,8 @@ class KNN_Dstore(object):
 
         localities["package_locality"] = package_locality
         localities["project_locality"] = torch.zeros_like(package_locality)
+
+        print(package_locality)
 
         return localities
 
