@@ -553,6 +553,10 @@ def add_generation_args(parser):
     #knnlm arguments
     group.add_argument('--knnlm', action='store_true',
                         help='use the k-nearest neighbors language model')
+    group.add_argument('--use_locality', action='store_true',
+                        help='Use Style to generate Language')
+    group.add_argument('--style', default=False, type=str,
+                        help='Generate Language of the given style')
 
     # arguments for iterative refinement generator
     group.add_argument('--iter-decode-eos-penalty', default=0.0, type=float, metavar='N',

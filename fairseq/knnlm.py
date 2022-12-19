@@ -194,6 +194,25 @@ class KNN_Dstore(object):
                     f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(58905, 392700))
                 self.project_locality_features = np.memmap(
                     f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(58905, 392700))
+
+                if hasattr(args, 'style'):
+                    print("load_styles")
+                    # Load localities for each style
+                    self.styles_dict = {}
+                    file = f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.style'
+
+                    with open(file, "r") as f:
+                        styles_list = f.readlines()
+                        styles = set(styles_list)
+
+                        print(styles)
+
+                        for style in styles:
+                            index = styles_list.index(style)
+                            self.styles_dict[style] = index
+                            print(f"The first index of {style} is {index}")
+                        x=y
+
             elif "style_category" in args.dstore_filename:
                 #Style + Category
                 self.package_locality_features = np.memmap(
@@ -350,11 +369,7 @@ class KNN_Dstore(object):
         except Exception as e: 
             has_package_locality = False
             print(f"No package_locality_features: {e}")
-            print(f"KNNS: {knns} \n Shape: {knns.shape} \n")
-            print(f"inv_token_sample_map: {self.inv_token_sample_map[knns]} \n Shape: {self.inv_token_sample_map[knns].shape} \n")
-            print(f"Tiles {np.tile(reduced_token_sample_ids, (knns.shape[1], 1)).T} \n Shape: {np.tile(reduced_token_sample_ids, (knns.shape[1], 1)).T.shape}")
-            print(f"Smaple Ids {reduced_token_sample_ids} \n Shape: {reduced_token_sample_ids.shape}")
-            
+
         try:
             category_locality = self.category_locality_features[
                 np.tile(reduced_token_sample_ids, (knns.shape[1], 1)).T,
@@ -586,24 +601,11 @@ class KNN_Dstore(object):
         total_block_count = 0
 
         dists, knns = self.index.search(queries.detach().cpu().float().numpy(), self.k + redundancy)
+
+        if self.args.use_locality:
+            localities = self.load_localities(style=self.args.style, knns=knns, dists=dists)
         
         retrieved_sample_ids = self.inv_token_sample_map[knns]
-
-        print("\nqueries")
-        print(queries)
-        print(queries.shape)
-        
-        print("\ndists")
-        print(dists)
-        print(dists.shape)
-        
-        print("\nknns")
-        print(knns)
-        print(knns.shape)
-
-        print("\nretrieved_sample_ids")
-        print(retrieved_sample_ids)
-        print(retrieved_sample_ids.shape)
 
         for x, y in zip(knns, dists):
             new_x = x
@@ -628,7 +630,14 @@ class KNN_Dstore(object):
         dists = torch.from_numpy(dists).cuda()
         dists = dist_func(dists, knns, queries, function=self.sim_func)
 
-        probs = utils.log_softmax(dists, dim=-1)
+
+        if self.args.knnlm:
+            probs = self.generate_stylistic_probs(localities=localities, 
+                                                  queries=queries, 
+                                                  dists=dists)
+        else:
+            probs = utils.log_softmax(dists, dim=-1)
+
         knn_token_ids = torch.from_numpy(knn_token_ids).long().cuda()
 
         # (T_reducedxB)
@@ -659,6 +668,54 @@ class KNN_Dstore(object):
         else:
             # TxBx1
             return full_yhat_knn_prob.view(qshape[0], qshape[1], 1), None
+
+
+    
+    def generate_localities(self, style, knns):
+        """
+        1. Get Example Ids for each style
+        2. Load those locality levels
+        3. Proceed as normal
+        """
+
+        localities = {}
+
+        idx = self.styles_dict[style]
+        reduced_token_sample_ids = idx
+        
+        package_locality = self.package_locality_features[
+            np.tile(reduced_token_sample_ids, (knns.shape[1], 1)).T,
+            self.inv_token_sample_map[knns]]
+        package_locality = torch.from_numpy(package_locality).cuda()
+
+        localities["package_locality"] = package_locality
+        localities["project_locality"] = torch.zeros_like(package_locality)
+
+        return localities
+
+
+    def generate_stylistic_probs(self, localities, queries, dists):
+        
+        if 'style_source' in self.args.dstore_filename:
+            
+            package_locality = localities["package_locality"]
+            project_locality = localities["project_locality"]
+
+            locality_indicator = project_locality + package_locality
+
+            locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=3).permute(2, 0, 1)
+            
+            params = self.adaptive_model.model(queries)
+            
+            modified_dists = locality_feat[0] * (params[:, 0][:, None] * dists) + \
+                                locality_feat[1] * (params[:, 1][:, None] * dists + params[:, 2][:, None]) + \
+                                locality_feat[2] * (params[:, 3][:, None] * dists + params[:, 4][:, None])
+            
+            probs = utils.log_softmax(modified_dists, dim=-1)
+        else:
+            raise ValueError("Invalid Dataset")
+
+        return probs
 
 
         
