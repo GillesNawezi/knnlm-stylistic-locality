@@ -50,7 +50,6 @@ class KNN_Dstore(object):
         self.sim_func = args.knn_sim_func
         self.dstore_fp16 = args.dstore_fp16
         self.index = self.setup_faiss(args)
-        self.dict = args.dict
         self.args = args
 
     def setup_faiss(self, args):
@@ -600,7 +599,7 @@ class KNN_Dstore(object):
         dists, knns = self.index.search(queries.detach().cpu().float().numpy(), self.k + redundancy)
 
         if self.args.use_locality:
-            localities = self.load_localities(style=self.args.style, knns=knns)
+            localities = self.load_localities(style=self.args.style, knns=knns, qshape=qshape)
         
         retrieved_sample_ids = self.inv_token_sample_map[knns]
 
@@ -645,7 +644,7 @@ class KNN_Dstore(object):
         calc_vocab_prob=True
         if calc_vocab_prob:
             # calc all vocab item
-            vocab_size = len(self.dict)
+            vocab_size = len(self.args.dict)
             yhat_knn_token_prob = torch.full([knn_token_ids.shape[0], vocab_size], -10000.).cuda()
             for i, row in enumerate(knn_token_ids):
                 unique_token_ids = row.unique()
@@ -668,21 +667,24 @@ class KNN_Dstore(object):
 
 
     
-    def load_localities(self, style, knns):
+    def load_localities(self, style, knns, qshape):
         """
         1. Get Example Ids for each style
         2. Load those locality levels
         3. Proceed as normal
         """
+
         print(f"Load {style} localities")
         localities = {}
 
         print("\n")
         print(f"knns  shape {knns.shape}")
 
-    
         idx = self.styles_dict[style]
-        reduced_token_sample_ids = torch.zeros(5) + idx
+        sample_ids = torch.FloatTensor([idx])
+
+        token_sample_ids = sample_ids.repeat(qshape[0], 1).view(-1)
+        reduced_token_sample_ids = token_sample_ids.cpu()
         
         package_locality = self.package_locality_features[
             np.tile(reduced_token_sample_ids, (knns.shape[1], 1)).T,
