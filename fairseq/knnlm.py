@@ -683,7 +683,7 @@ class KNN_Dstore(object):
         
 
         idx = self.styles_dict[style]
-        reduced_token_sample_ids = torch.tensor(idx, shape=(5, 1))
+        reduced_token_sample_ids = torch.zeros(5, 1) + idx
         
         package_locality = self.package_locality_features[
             np.tile(reduced_token_sample_ids, (knns.shape[1], 1)).T,
