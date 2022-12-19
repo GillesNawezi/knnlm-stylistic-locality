@@ -195,7 +195,7 @@ class KNN_Dstore(object):
                     f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(58905, 392700))
 
                 #Load_style_data
-                if hasattr(args, 'style'):
+                if hasattr(args, 'style') and args.style!=False:
                     self.styles_dict = {}
                     file = f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.style'
 
@@ -627,7 +627,7 @@ class KNN_Dstore(object):
         dists = dist_func(dists, knns, queries, function=self.sim_func)
 
 
-        if self.args.knnlm:
+        if self.args.use_locality:
             probs = self.generate_stylistic_probs(localities=localities, 
                                                   queries=queries, 
                                                   dists=dists)
@@ -657,8 +657,6 @@ class KNN_Dstore(object):
             full_yhat_knn_token_prob = torch.full([qshape[0] * qshape[1], vocab_size], -10000.).cuda()
             full_yhat_knn_token_prob = yhat_knn_token_prob
             
-            print(full_yhat_knn_token_prob)
-            print(full_yhat_knn_token_prob.shape)
             # TxBx1
             return full_yhat_knn_prob.view(qshape[0], qshape[1], 1), full_yhat_knn_token_prob.view(qshape[0], qshape[1], vocab_size)
         else:
@@ -677,14 +675,8 @@ class KNN_Dstore(object):
         print(f"Load {style} localities")
         localities = {}
 
-        print("\n")
-        print(f"knns  shape {knns.shape}")
-
         idx = self.styles_dict[style]
         sample_ids = torch.LongTensor([idx])
-
-        print(f"sample_ids")
-        print(f"sample_ids  shape {sample_ids.shape}")
 
         token_sample_ids = sample_ids.repeat(qshape[0], 1).view(-1)
         reduced_token_sample_ids = token_sample_ids.cpu()
@@ -696,11 +688,6 @@ class KNN_Dstore(object):
 
         localities["package_locality"] = package_locality
         localities["project_locality"] = torch.zeros_like(package_locality)
-
-        print(f"package_locality")
-        print(f"package_locality  shape {package_locality.shape}")
-
-        print(package_locality)
 
         return localities
 
