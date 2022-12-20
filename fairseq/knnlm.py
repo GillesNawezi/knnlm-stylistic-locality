@@ -693,6 +693,10 @@ class KNN_Dstore(object):
 
 
     def generate_stylistic_probs(self, localities, queries, dists):
+        """
+        For preference of same style keep.
+        For Exclusion set probs of knns without same style = math.inf
+        """
         
         if 'style_source' in self.args.dstore_filename:
             
@@ -708,8 +712,11 @@ class KNN_Dstore(object):
             modified_dists = locality_feat[0] * (params[:, 0][:, None] * dists) + \
                                 locality_feat[1] * (params[:, 1][:, None] * dists + params[:, 2][:, None]) + \
                                 locality_feat[2] * (params[:, 3][:, None] * dists + params[:, 4][:, None])
-            
+                        
             probs = utils.log_softmax(modified_dists, dim=-1)
+            
+            #Penalize other styles 
+            probs = torch.where(package_locality == 0, -math.inf, 0.25*probs)
         else:
             raise ValueError("Invalid Dataset")
 
