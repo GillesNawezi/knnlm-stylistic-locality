@@ -70,9 +70,13 @@ def main(parsed_args):
     #Track performance per Style
     import pathlib
     global_path = str(pathlib.Path(__file__).parent.resolve()) + "/../"
-    folder = global_path + "examples/language_model/style_source_dataset/"
-    valid_style_file = folder + "valid.txt.style"
+    ex_path = parsed_args.path
+    ex_path = ex_path.split("/")[-2]
+    folder = global_path + f"examples/language_model/{ex_path}/"
+    
+    print(folder)
 
+    valid_style_file = folder + "valid.txt.style"
     valid_source_file = folder + "valid.txt.source"
 
     with open(valid_style_file, "r") as f:
