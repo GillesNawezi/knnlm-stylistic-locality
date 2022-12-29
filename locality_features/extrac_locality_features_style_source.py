@@ -7,7 +7,7 @@ from pathlib import Path
 
 global_path = str(pathlib.Path(__file__).parent.parent.resolve())
 print(global_path)
-data = "style_source_dataset"
+data = "style_source_sampled_dataset"
 #target_folder = f"examples/language_model/{data}/"
 target_folder = f"{global_path}/examples/language_model/{data}/"
 print(target_folder)
