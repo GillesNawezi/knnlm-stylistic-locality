@@ -102,7 +102,7 @@ def main(parsed_args):
                                      }
 
     sources = df["source"].unique().tolist()
-    print(f"Sources in data:{styles}")
+    print(f"Sources in data:{sources}")
     source_performances = {}
     for source in sources:
         source_performances[source] = {

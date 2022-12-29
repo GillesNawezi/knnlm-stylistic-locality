@@ -716,7 +716,8 @@ class KNN_Dstore(object):
             probs = utils.log_softmax(modified_dists, dim=-1)
             
             #Penalize other styles 
-            probs = torch.where(package_locality == 0, -math.inf, 0.25*probs)
+            reward = 0.25
+            probs = torch.where(package_locality == 0, -math.inf, reward*probs)
         else:
             raise ValueError("Invalid Dataset")
 
