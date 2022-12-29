@@ -110,7 +110,7 @@ class WeightedDist(torch.nn.Module):
 
 n=100000
 num_retrieved = 1024
-dataset = "style_source_wiki_fine_tune"
+dataset = "style_source_sampled_dataset"
 global_path = str(pathlib.Path(__file__).parent.resolve()) + "/"
 
 context_vecs = np.load(global_path + f'saved_tensors/{dataset}/valid_context_cache.npy')
