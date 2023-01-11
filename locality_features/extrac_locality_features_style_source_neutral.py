@@ -35,8 +35,7 @@ def generate_source_locality_matrix(split_name, chunk_size):
             open(f'{target_folder}{split_name}train.txt.source') as testtrain_section_file:
         for line in test_section_file:
             test_sections.append(line.strip())
-        for line in test_section_file:
-            testtrain_sections.append(line.strip())
+        testtrain_sections = test_sections  
         #for line in testtrain_section_file:
             #testtrain_sections.append(line.strip())
     
@@ -95,8 +94,7 @@ def generate_style_locality_matrix(split_name, chunk_size):
             open(f'{target_folder}{split_name}train.txt.style') as testtrain_section_file:
         for line in test_section_file:
             test_sections.append(line.strip())
-        for line in test_section_file:
-            testtrain_sections.append(line.strip())
+        testtrain_sections = test_sections
         #for line in testtrain_section_file:
         #    testtrain_sections.append(line.strip())
     
