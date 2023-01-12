@@ -76,8 +76,9 @@ def main(parsed_args):
     
     print(folder)
 
-    valid_style_file = folder + "valid.txt.style"
-    valid_source_file = folder + "valid.txt.source"
+    valid_style_file = folder + parsed_args.gen_subset + ".txt.style"
+    valid_source_file = folder + parsed_args.gen_subset + ".txt.source"
+
 
     with open(valid_style_file, "r") as f:
         styles = f.readlines()
