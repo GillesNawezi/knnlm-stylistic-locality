@@ -150,12 +150,12 @@ class KNN_Dstore(object):
             elif "style_source" in args.dstore_filename:
                 #Style + Source
                 print("Source Data")
-                #without neutral 69300, 403095
-                #full (361470, 361470)
+                #style_source_dataset 69300, 403095
+                #style_source_neutral (361470, 361470)
                 self.package_locality_features = np.memmap(
-                    f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(361470, 361470))
+                    f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(361470, 361470))
                 self.project_locality_features = np.memmap(
-                    f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(361470, 361470))
+                    f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(361470, 361470))
             elif "style_category" in args.dstore_filename:
                 #Style + Category
                 self.package_locality_features = np.memmap(
@@ -191,12 +191,12 @@ class KNN_Dstore(object):
             elif "style_source" in args.dstore_filename:
                 #Style + Source
                 print("Source Data")
-                #wo neutral 58905, 392700
-                #with neutral (307250, 307250)
+                # style_source_dataset 58905, 392700
+                # style_source_neutral (307250, 307250)
                 self.package_locality_features = np.memmap(
-                    f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(307250, 307250))
+                    f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(307250, 307250))
                 self.project_locality_features = np.memmap(
-                    f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(307250, 307250))
+                    f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(307250, 307250))
 
                 #Load_style_data
                 if hasattr(args, 'style') and args.style!=False:
