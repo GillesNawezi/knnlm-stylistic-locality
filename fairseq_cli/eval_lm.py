@@ -224,8 +224,8 @@ def main(parsed_args):
             # if ex_i > 300:
             #     continue
 
-            if ex_i > 715:
-                 continue
+            # if ex_i > 715:
+            #     continue
 
             sample = utils.move_to_cuda(sample) if use_cuda else sample
             gen_timer.start()
