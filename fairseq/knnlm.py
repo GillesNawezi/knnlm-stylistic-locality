@@ -153,9 +153,9 @@ class KNN_Dstore(object):
                 #style_source_dataset 69300, 403095
                 #style_source_neutral (361470, 361470)
                 self.package_locality_features = np.memmap(
-                    f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(361470, 361470))
+                    f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(100168, 100168))
                 self.project_locality_features = np.memmap(
-                    f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(361470, 361470))
+                    f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(100168, 100168))
             elif "style_category" in args.dstore_filename:
                 #Style + Category
                 self.package_locality_features = np.memmap(
@@ -194,9 +194,9 @@ class KNN_Dstore(object):
                 # style_source_dataset 58905, 392700
                 # style_source_neutral (307250, 307250)
                 self.package_locality_features = np.memmap(
-                    f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(307250, 307250))
+                    f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(89643, 89643))
                 self.project_locality_features = np.memmap(
-                    f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(307250, 307250))
+                    f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(89643, 89643))
 
                 #Load_style_data
                 if hasattr(args, 'style') and args.style!=False:
