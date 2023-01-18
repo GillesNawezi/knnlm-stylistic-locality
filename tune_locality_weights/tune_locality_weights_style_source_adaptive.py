@@ -97,7 +97,7 @@ class WeightedDist(torch.nn.Module):
 
 
 num_retrieved = 1024
-dataset = "style_source_wiki_fine_tune" #"style_category_dataset"
+dataset = "style_source_neutral" #"style_source_wiki_fine_tune" #"style_category_dataset"
 global_path = str(pathlib.Path(__file__).parent.resolve()) + "/"
 n=50000
 epochs = 1000
