@@ -226,8 +226,7 @@ def main(parsed_args):
             #     continue
 
             if "style_source_neutral" in args.dstore_filename and 'valid' in args.gen_subset:
-                print("test")
-                if ex_i > 1244:
+                if ex_i >= 1244:
                     continue
 
             sample = utils.move_to_cuda(sample) if use_cuda else sample
