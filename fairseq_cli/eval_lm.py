@@ -225,7 +225,8 @@ def main(parsed_args):
             # if ex_i > 300:
             #     continue
 
-            if args.save_knnlm_dstore and "style_source_neutral" in args.dstore_filename and 'valid' in args.gen_subset:
+            if "style_source_neutral" in args.dstore_filename and 'valid' in args.gen_subset:
+                print("test")
                 if ex_i > 1244:
                     continue
 
