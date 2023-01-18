@@ -225,8 +225,8 @@ def main(parsed_args):
             # if ex_i > 300:
             #     continue
 
-            # if ex_i > 715:
-            #     continue
+            if ex_i > 1244:
+                continue
 
             sample = utils.move_to_cuda(sample) if use_cuda else sample
             gen_timer.start()
@@ -303,6 +303,9 @@ def main(parsed_args):
 
                 source_performances[source]["score_sum"] += pos_scores.sum().cpu()
                 source_performances[source]["count"] += pos_scores.numel() - skipped_toks
+
+                # ====== Validate Word Level  =====
+                # Number of times that words that occur frequently are predicted right. 
 
                 # ===== Test Dict ====
                 #sent = task.source_dictionary.dummy_sentence(7)

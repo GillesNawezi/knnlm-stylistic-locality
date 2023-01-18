@@ -190,7 +190,7 @@ class KNN_Dstore(object):
                     f'examples/language_model/style_source_category_dataset/{args.gen_subset}train.txt.category.npy', dtype='int8', mode='r', shape=(58905, 392700))
             elif "style_source" in args.dstore_filename:
                 #Style + Source
-                print("Source Data")
+                print("Style Source Data")
                 # style_source_dataset 58905, 392700
                 # style_source_neutral (307250, 307250)
                 self.package_locality_features = np.memmap(
