@@ -64,6 +64,8 @@ dstore_sizes = {
     "style_source_wiki_fine_tune":2157921 
 }
 
+survey_models = ["style_source_wiki_fine_tune","style_source_neutral"]
+
 def modify_args(model, args):
     print(args)
     args.data = f"data-bin/{model}"
@@ -71,6 +73,11 @@ def modify_args(model, args):
     args.indexfile = f"checkpoints/{model}/valid_knn.index"
     args.dstore_size = dstore_sizes[model]
     args.dstore_filename = f"checkpoints/{model}/valid_dstore"
+
+    if model in survey_models:
+        args.use_locality = True
+    else: 
+        del args.use_locality
 
     return args
 
@@ -83,7 +90,6 @@ def main(args):
     styles = ["toxic","formal","informal","polite","impolite","supportive","offensive"]
     survey_dict_list = []
 
-    survey_models = ["style_source_wiki_fine_tune","style_source_neutral"]
     args = modify_args("style_source_neutral",args)
 
     if args.buffer_size < 1:
@@ -233,7 +239,7 @@ def main(args):
                             id,
                             alignment_str
                         ))
-                    survey_dict["style"] = hypo_str
+                    survey_dict[style] = hypo_str
 
         survey_dict_list.append(survey_dict)
         # update running id counter
