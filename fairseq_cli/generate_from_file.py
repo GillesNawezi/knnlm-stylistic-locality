@@ -146,7 +146,7 @@ def main(args):
     start_id = 0
 
     styles = ["toxic","formal","informal","polite","impolite","supportive","offensive"]
-    input_file = global_path + "survey_data/survey_samples.txt"
+    input_file = global_path + "/survey_data/survey_samples.txt"
 
     with open(input_file, "r") as f:
         survey_samples = f.readlines()
