@@ -154,6 +154,14 @@ def main(args):
             x = tokenizer.decode(x)
         return x
 
+                         
+    if args.knnlm:
+        args.decoder_embed_dim = getattr(args, 'decoder_embed_dim', 1024)
+        args.dict = getattr(args, 'dict', tgt_dict)
+        knn_dstore = KNN_Dstore(args)
+    else:
+        knn_dstore = None
+
     # Load alignment dictionary for unknown word replacement
     # (None if no unknown word replacement, empty if no path to align dictionary)
     align_dict = utils.load_align_dict(args.replace_unk)
@@ -177,16 +185,7 @@ def main(args):
         survey_dict = {}
         inputs = [inputs]
         for style in styles:
-            
-            args.style = style           
-            if args.knnlm:
-                args.decoder_embed_dim = getattr(args, 'decoder_embed_dim', 1024)
-                args.dict = getattr(args, 'dict', tgt_dict)
-                knn_dstore = KNN_Dstore(args)
-            else:
-                knn_dstore = None
-
-
+            args.style = style  
             results = []
             for batch in make_batches(inputs, args, task, max_positions, encode_fn):
                 src_tokens = batch.src_tokens
