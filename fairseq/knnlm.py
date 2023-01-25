@@ -200,9 +200,9 @@ class KNN_Dstore(object):
                         f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(89643, 89643))
                 else:
                     self.package_locality_features = np.memmap(
-                        f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(58905, 392700))
+                        f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(58905, 392700))
                     self.project_locality_features = np.memmap(
-                        f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(58905, 392700))
+                        f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(58905, 392700))
 
                 #Load_style_data
                 if hasattr(args, 'style') and args.style!=False:
