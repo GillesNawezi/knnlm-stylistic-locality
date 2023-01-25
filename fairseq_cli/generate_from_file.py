@@ -21,6 +21,8 @@ from fairseq.data import encoders
 
 from fairseq.knnlm import KNN_Dstore
 
+import pathlib
+
 logging.basicConfig(
     format='%(asctime)s | %(levelname)s | %(name)s | %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
@@ -29,22 +31,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger('fairseq_cli.interactive')
 
+global_path = str(pathlib.Path(__file__).parent.parent.resolve())
 
 Batch = namedtuple('Batch', 'ids src_tokens src_lengths')
 Translation = namedtuple('Translation', 'src_str hypos pos_scores alignments')
-
-
-def buffered_read(input, buffer_size):
-    buffer = []
-    with fileinput.input(files=[input], openhook=fileinput.hook_encoded("utf-8")) as h:
-        for src_str in h:
-            buffer.append(src_str.strip())
-            if len(buffer) >= buffer_size:
-                yield buffer
-                buffer = []
-
-    if len(buffer) > 0:
-        yield buffer
 
 
 def make_batches(lines, args, task, max_positions, encode_fn):
@@ -154,7 +144,14 @@ def main(args):
     logger.info('NOTE: hypothesis and token scores are output in base 2')
     logger.info('Type the input sentence and press return:')
     start_id = 0
-    for inputs in buffered_read(args.input, args.buffer_size):
+
+    styles = ["toxic","formal","informal","polite","impolite","supportive","offensive"]
+    input_file = global_path + "survey_data/survey_samples.txt"
+
+    with open(input_file, "r") as f:
+        survey_samples = f.readlines()
+
+    for inputs in survey_samples:
         results = []
         for batch in make_batches(inputs, args, task, max_positions, encode_fn):
             src_tokens = batch.src_tokens
