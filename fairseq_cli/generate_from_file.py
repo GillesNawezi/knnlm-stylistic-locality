@@ -61,10 +61,15 @@ def make_batches(lines, args, task, max_positions, encode_fn):
 
 dstore_sizes = {
     "style_source_neutral":4112371,
-    "style_source_wiki_fine_tune":2157921 
+    "style_source_wiki_fine_tune":2157921,
+    "toxic":37871,"formal":255577,"informal":255577,"polite":6000,"impolite":6000,"supportive":6000,"offensive":6000 
 }
 
-survey_models = ["style_source_wiki_fine_tune","style_source_neutral"]
+survey_models = ["style_source_wiki_fine_tune",
+                 #"style_source_neutral",
+                 "toxic","formal","informal","polite","impolite","supportive","offensive"]
+
+styles = ["toxic","formal","informal","polite","impolite","supportive","offensive"]
 
 def modify_args(model, args):
 
@@ -74,11 +79,12 @@ def modify_args(model, args):
     args.dstore_size = dstore_sizes[model]
     args.dstore_filename = f"checkpoints/{model}/valid_dstore"
 
-    if model in survey_models:
+    if model not in styles:
         args.use_locality = True
         args.style = "not_set"
     else: 
-        del args.use_locality
+        args.use_locality = False
+        args.style = False
 
     return args
 
@@ -88,165 +94,175 @@ def main(args):
     input_file = global_path + "/survey_data/survey_samples.txt"
     output_file = global_path + "/survey_data/survey_data.txt"
 
-    styles = ["toxic","formal","informal","polite","impolite","supportive","offensive"]
+
     survey_dict_list = []
 
-    args = modify_args("style_source_neutral",args)
+    for survey_model in survey_models:
 
-    if args.buffer_size < 1:
-        args.buffer_size = 1
-    if args.max_tokens is None and args.max_sentences is None:
-        args.max_sentences = 1
+        logger.info(f"Load New Model: survey_model")
+        args = modify_args(survey_model,args)
 
-    assert not args.sampling or args.nbest == args.beam, \
-        '--sampling requires --nbest to be equal to --beam'
-    assert not args.max_sentences or args.max_sentences <= args.buffer_size, \
-        '--max-sentences/--batch-size cannot be larger than --buffer-size'
+        if args.buffer_size < 1:
+            args.buffer_size = 1
+        if args.max_tokens is None and args.max_sentences is None:
+            args.max_sentences = 1
 
-    logger.info(args)
+        assert not args.sampling or args.nbest == args.beam, \
+            '--sampling requires --nbest to be equal to --beam'
+        assert not args.max_sentences or args.max_sentences <= args.buffer_size, \
+            '--max-sentences/--batch-size cannot be larger than --buffer-size'
 
-    use_cuda = torch.cuda.is_available() and not args.cpu
+        logger.info(args)
 
-    # Setup task, e.g., translation
-    task = tasks.setup_task(args)
+        use_cuda = torch.cuda.is_available() and not args.cpu
 
-    # Load ensemble
-    logger.info('loading model(s) from {}'.format(args.path))
-    models, _model_args = checkpoint_utils.load_model_ensemble(
-        args.path.split(os.pathsep),
-        arg_overrides=eval(args.model_overrides),
-        task=task,
-    )
+        # Setup task, e.g., translation
+        task = tasks.setup_task(args)
 
-    # Set dictionaries
-    src_dict = task.source_dictionary
-    tgt_dict = task.target_dictionary
-
-    # Optimize ensemble for generation
-    for model in models:
-        model.make_generation_fast_(
-            beamable_mm_beam_size=None if args.no_beamable_mm else args.beam,
-            need_attn=args.print_alignment,
+        # Load ensemble
+        logger.info('loading model(s) from {}'.format(args.path))
+        models, _model_args = checkpoint_utils.load_model_ensemble(
+            args.path.split(os.pathsep),
+            arg_overrides=eval(args.model_overrides),
+            task=task,
         )
-        if args.fp16:
-            model.half()
-        if use_cuda:
-            model.cuda()
 
-    # Initialize generator
-    generator = task.build_generator(args)
+        # Set dictionaries
+        src_dict = task.source_dictionary
+        tgt_dict = task.target_dictionary
 
-    # Handle tokenization and BPE
-    tokenizer = encoders.build_tokenizer(args)
-    bpe = encoders.build_bpe(args)
+        # Optimize ensemble for generation
+        for model in models:
+            model.make_generation_fast_(
+                beamable_mm_beam_size=None if args.no_beamable_mm else args.beam,
+                need_attn=args.print_alignment,
+            )
+            if args.fp16:
+                model.half()
+            if use_cuda:
+                model.cuda()
 
-    def encode_fn(x):
-        if tokenizer is not None:
-            x = tokenizer.encode(x)
-        if bpe is not None:
-            x = bpe.encode(x)
-        return x
+        # Initialize generator
+        generator = task.build_generator(args)
 
-    def decode_fn(x):
-        if bpe is not None:
-            x = bpe.decode(x)
-        if tokenizer is not None:
-            x = tokenizer.decode(x)
-        return x
+        # Handle tokenization and BPE
+        tokenizer = encoders.build_tokenizer(args)
+        bpe = encoders.build_bpe(args)
 
-                         
-    if args.knnlm:
-        args.decoder_embed_dim = getattr(args, 'decoder_embed_dim', 1024)
-        args.dict = getattr(args, 'dict', tgt_dict)
-        knn_dstore = KNN_Dstore(args)
-    else:
-        knn_dstore = None
+        def encode_fn(x):
+            if tokenizer is not None:
+                x = tokenizer.encode(x)
+            if bpe is not None:
+                x = bpe.encode(x)
+            return x
 
-    # Load alignment dictionary for unknown word replacement
-    # (None if no unknown word replacement, empty if no path to align dictionary)
-    align_dict = utils.load_align_dict(args.replace_unk)
+        def decode_fn(x):
+            if bpe is not None:
+                x = bpe.decode(x)
+            if tokenizer is not None:
+                x = tokenizer.decode(x)
+            return x
 
-    max_positions = utils.resolve_max_positions(
-        task.max_positions(),
-        *[model.max_positions() for model in models]
-    )
+                            
+        if args.knnlm:
+            args.decoder_embed_dim = getattr(args, 'decoder_embed_dim', 1024)
+            args.dict = getattr(args, 'dict', tgt_dict)
+            knn_dstore = KNN_Dstore(args)
+        else:
+            knn_dstore = None
 
-    if args.buffer_size > 1:
-        logger.info('Sentence buffer size: %s', args.buffer_size)
-    logger.info('NOTE: hypothesis and token scores are output in base 2')
-    logger.info('Type the input sentence and press return:')
-    start_id = 0
+        # Load alignment dictionary for unknown word replacement
+        # (None if no unknown word replacement, empty if no path to align dictionary)
+        align_dict = utils.load_align_dict(args.replace_unk)
 
-    with open(input_file, "r") as f:
-        survey_samples = f.read().splitlines() 
+        max_positions = utils.resolve_max_positions(
+            task.max_positions(),
+            *[model.max_positions() for model in models]
+        )
 
-    for inputs in survey_samples:
-        print(f"\nInput sample: {inputs}")
-        survey_dict = {}
-        inputs = [inputs]
-        for style in styles:
-            args.style = style  
-            results = []
-            for batch in make_batches(inputs, args, task, max_positions, encode_fn):
-                src_tokens = batch.src_tokens
-                src_lengths = batch.src_lengths
-                if use_cuda:
-                    src_tokens = src_tokens.cuda()
-                    src_lengths = src_lengths.cuda()
+        if args.buffer_size > 1:
+            logger.info('Sentence buffer size: %s', args.buffer_size)
+        logger.info('NOTE: hypothesis and token scores are output in base 2')
+        logger.info('Type the input sentence and press return:')
+        start_id = 0
 
-                sample = {
-                    'net_input': {
-                        'src_tokens': src_tokens,
-                        'src_lengths': src_lengths,
-                    },
-                }
-                translations = task.inference_step(generator, models, sample, 
-                                                #kwargs
-                                                args=args, knn_dstore=knn_dstore)
+        with open(input_file, "r") as f:
+            survey_samples = f.read().splitlines() 
 
-                for i, (id, hypos) in enumerate(zip(batch.ids.tolist(), translations)):
-                    src_tokens_i = utils.strip_pad(src_tokens[i], tgt_dict.pad())
-                    results.append((start_id + id, src_tokens_i, hypos))
+        for inputs in survey_samples:
+            print(f"\nInput sample: {inputs}")
+            survey_dict = {}
+            survey_dict["model"] = survey_model
+            inputs = [inputs]
 
-            # sort output to match input order
-            for id, src_tokens, hypos in sorted(results, key=lambda x: x[0]):
-                if src_dict is not None:
-                    src_str = src_dict.string(src_tokens, args.remove_bpe)
-                    print('S-{}\t{}'.format(id, src_str))
+            if survey_model in styles:
+                style_loop = [False]
+            else: 
+                style_loop = styles
 
-                # Process top predictions
-                for hypo in hypos[:min(len(hypos), args.nbest)]:
-                    hypo_tokens, hypo_str, alignment = utils.post_process_prediction(
-                        hypo_tokens=hypo['tokens'].int().cpu(),
-                        src_str=src_str,
-                        alignment=hypo['alignment'],
-                        align_dict=align_dict,
-                        tgt_dict=tgt_dict,
-                        remove_bpe=args.remove_bpe,
-                    )
-                    hypo_str = decode_fn(hypo_str)
-                    score = hypo['score'] / math.log(2)  # convert to base 2
-                    print('H-{}\t{}\t{}'.format(id, score, hypo_str))
-                    print('P-{}\t{}'.format(
-                        id,
-                        ' '.join(map(
-                            lambda x: '{:.4f}'.format(x),
-                            # convert from base e to base 2
-                            hypo['positional_scores'].div_(math.log(2)).tolist(),
-                        ))
-                    ))
-                    if args.print_alignment:
-                        alignment_str = " ".join(["{}-{}".format(src, tgt) for src, tgt in alignment])
-                        print('A-{}\t{}'.format(
+            for style in style_loop:
+                args.style = style  
+                results = []
+                for batch in make_batches(inputs, args, task, max_positions, encode_fn):
+                    src_tokens = batch.src_tokens
+                    src_lengths = batch.src_lengths
+                    if use_cuda:
+                        src_tokens = src_tokens.cuda()
+                        src_lengths = src_lengths.cuda()
+
+                    sample = {
+                        'net_input': {
+                            'src_tokens': src_tokens,
+                            'src_lengths': src_lengths,
+                        },
+                    }
+                    translations = task.inference_step(generator, models, sample, 
+                                                    #kwargs
+                                                    args=args, knn_dstore=knn_dstore)
+
+                    for i, (id, hypos) in enumerate(zip(batch.ids.tolist(), translations)):
+                        src_tokens_i = utils.strip_pad(src_tokens[i], tgt_dict.pad())
+                        results.append((start_id + id, src_tokens_i, hypos))
+
+                # sort output to match input order
+                for id, src_tokens, hypos in sorted(results, key=lambda x: x[0]):
+                    if src_dict is not None:
+                        src_str = src_dict.string(src_tokens, args.remove_bpe)
+                        print('S-{}\t{}'.format(id, src_str))
+
+                    # Process top predictions
+                    for hypo in hypos[:min(len(hypos), args.nbest)]:
+                        hypo_tokens, hypo_str, alignment = utils.post_process_prediction(
+                            hypo_tokens=hypo['tokens'].int().cpu(),
+                            src_str=src_str,
+                            alignment=hypo['alignment'],
+                            align_dict=align_dict,
+                            tgt_dict=tgt_dict,
+                            remove_bpe=args.remove_bpe,
+                        )
+                        hypo_str = decode_fn(hypo_str)
+                        score = hypo['score'] / math.log(2)  # convert to base 2
+                        print('H-{}\t{}\t{}'.format(id, score, hypo_str))
+                        print('P-{}\t{}'.format(
                             id,
-                            alignment_str
+                            ' '.join(map(
+                                lambda x: '{:.4f}'.format(x),
+                                # convert from base e to base 2
+                                hypo['positional_scores'].div_(math.log(2)).tolist(),
+                            ))
                         ))
-                    survey_dict[style] = hypo_str
+                        if args.print_alignment:
+                            alignment_str = " ".join(["{}-{}".format(src, tgt) for src, tgt in alignment])
+                            print('A-{}\t{}'.format(
+                                id,
+                                alignment_str
+                            ))
+                        survey_dict[style] = hypo_str
 
-        survey_dict_list.append(survey_dict)
-        # update running id counter
-        start_id += len(inputs)
-        survey_df = pd.DataFrame(survey_dict_list)
+            survey_dict_list.append(survey_dict)
+            # update running id counter
+            start_id += len(inputs)
+            survey_df = pd.DataFrame(survey_dict_list)
     
     survey_df.to_csv(output_file)
     
