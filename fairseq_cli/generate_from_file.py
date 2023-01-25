@@ -62,12 +62,13 @@ def make_batches(lines, args, task, max_positions, encode_fn):
 dstore_sizes = {
     "style_source_neutral":4112371,
     "style_source_wiki_fine_tune":2157921,
-    "toxic":37871,"formal":255577,"informal":255577,"polite":6000,"impolite":6000,"supportive":6000,"offensive":6000 
+    "toxic_dataset":37871,"formal_dataset":255577,"informal_dataset":255577,"polite_dataset":6000,
+    "impolite_dataset":6000,"supportive_dataset":6000,"offensive_dataset":6000 
 }
 
 survey_models = ["style_source_wiki_fine_tune",
                  #"style_source_neutral",
-                 "toxic","formal","informal","polite","impolite","supportive","offensive"]
+                 "toxic_dataset","formal_dataset","informal_dataset","polite_dataset","impolite_dataset","supportive_dataset","offensive_dataset"]
 
 styles = ["toxic","formal","informal","polite","impolite","supportive","offensive"]
 
@@ -79,7 +80,7 @@ def modify_args(model, args):
     args.dstore_size = dstore_sizes[model]
     args.dstore_filename = f"checkpoints/{model}/valid_dstore"
 
-    if model not in styles:
+    if model.replace("_dataset","") not in styles:
         args.use_locality = True
         args.style = "not_set"
     else: 
@@ -93,7 +94,6 @@ def main(args):
 
     input_file = global_path + "/survey_data/survey_samples.txt"
     output_file = global_path + "/survey_data/survey_data.txt"
-
 
     survey_dict_list = []
 
@@ -195,7 +195,7 @@ def main(args):
             survey_dict["model"] = survey_model
             inputs = [inputs]
 
-            if survey_model in styles:
+            if survey_model.replace("_dataset","") in styles:
                 style_loop = [False]
             else: 
                 style_loop = styles
