@@ -629,6 +629,7 @@ class KNN_Dstore(object):
 
         if self.args.use_locality:
             localities = self.load_localities(style=self.args.style, knns=knns, qshape=qshape)
+            
 
         # save if retrieved is eq to actual tgt?
         knn_token_ids = self.vals[knns].squeeze(-1)
