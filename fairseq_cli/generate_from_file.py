@@ -84,7 +84,7 @@ def main(args):
     survey_dict_list = []
 
     survey_models = ["style_source_wiki_fine_tune","style_source_neutral"]
-    args = modify_args(model,args)
+    args = modify_args("style_source_neutral",args)
 
     if args.buffer_size < 1:
         args.buffer_size = 1
