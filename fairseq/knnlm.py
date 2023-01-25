@@ -193,13 +193,20 @@ class KNN_Dstore(object):
                 print("Style Source Data")
                 # style_source_dataset 58905, 392700
                 # style_source_neutral (307250, 307250)
-                self.package_locality_features = np.memmap(
-                    f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(89643, 89643))
-                self.project_locality_features = np.memmap(
-                    f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(89643, 89643))
+                if  "neutral" in args.dstore_filename:
+                    self.package_locality_features = np.memmap(
+                        f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(89643, 89643))
+                    self.project_locality_features = np.memmap(
+                        f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(89643, 89643))
+                else:
+                    self.package_locality_features = np.memmap(
+                        f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.style.npy', dtype='int8', mode='r', shape=(58905, 392700))
+                    self.project_locality_features = np.memmap(
+                        f'examples/language_model/style_source_neutral/{args.gen_subset}train.txt.source.npy', dtype='int8', mode='r', shape=(58905, 392700))
 
                 #Load_style_data
                 if hasattr(args, 'style') and args.style!=False:
+                    x=y
                     self.styles_dict = {}
                     file = f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.style'
 
@@ -212,6 +219,8 @@ class KNN_Dstore(object):
                             style_index = styles_list.index(style)
                             style=style.strip()
                             self.styles_dict[style] = style_index
+                else:
+                    u=sdkjak
             elif "style_category" in args.dstore_filename:
                 #Style + Category
                 self.package_locality_features = np.memmap(
