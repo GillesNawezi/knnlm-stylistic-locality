@@ -206,7 +206,6 @@ class KNN_Dstore(object):
 
                 #Load_style_data
                 if hasattr(args, 'style') and args.style!=False:
-                    x=y
                     self.styles_dict = {}
                     file = f'examples/language_model/style_source_dataset/{args.gen_subset}train.txt.style'
 
@@ -219,8 +218,7 @@ class KNN_Dstore(object):
                             style_index = styles_list.index(style)
                             style=style.strip()
                             self.styles_dict[style] = style_index
-                else:
-                    u=sdkjak
+
             elif "style_category" in args.dstore_filename:
                 #Style + Category
                 self.package_locality_features = np.memmap(

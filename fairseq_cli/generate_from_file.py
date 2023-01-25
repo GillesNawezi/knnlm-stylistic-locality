@@ -67,7 +67,7 @@ dstore_sizes = {
 survey_models = ["style_source_wiki_fine_tune","style_source_neutral"]
 
 def modify_args(model, args):
-    print(args)
+
     args.data = f"data-bin/{model}"
     args.path = f"checkpoints/{model}/checkpoint_best.pt"
     args.indexfile = f"checkpoints/{model}/valid_knn.index"
@@ -76,6 +76,7 @@ def modify_args(model, args):
 
     if model in survey_models:
         args.use_locality = True
+        args.style = "not_set"
     else: 
         del args.use_locality
 
