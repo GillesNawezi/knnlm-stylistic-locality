@@ -163,13 +163,6 @@ def main(args):
         *[model.max_positions() for model in models]
     )
 
-    if args.knnlm:
-        args.decoder_embed_dim = getattr(args, 'decoder_embed_dim', 1024)
-        args.dict = getattr(args, 'dict', tgt_dict)
-        knn_dstore = KNN_Dstore(args)
-    else:
-        knn_dstore = None
-
     if args.buffer_size > 1:
         logger.info('Sentence buffer size: %s', args.buffer_size)
     logger.info('NOTE: hypothesis and token scores are output in base 2')
@@ -184,7 +177,16 @@ def main(args):
         survey_dict = {}
         inputs = [inputs]
         for style in styles:
-            args.style = style
+            
+            args.style = style           
+            if args.knnlm:
+                args.decoder_embed_dim = getattr(args, 'decoder_embed_dim', 1024)
+                args.dict = getattr(args, 'dict', tgt_dict)
+                knn_dstore = KNN_Dstore(args)
+            else:
+                knn_dstore = None
+
+
             results = []
             for batch in make_batches(inputs, args, task, max_positions, encode_fn):
                 src_tokens = batch.src_tokens
