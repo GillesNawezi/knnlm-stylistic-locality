@@ -22,6 +22,7 @@ from fairseq.data import encoders
 from fairseq.knnlm import KNN_Dstore
 
 import pathlib
+import pandas as pd
 
 logging.basicConfig(
     format='%(asctime)s | %(levelname)s | %(name)s | %(message)s',
@@ -58,9 +59,32 @@ def make_batches(lines, args, task, max_positions, encode_fn):
             src_tokens=batch['net_input']['src_tokens'], src_lengths=batch['net_input']['src_lengths'],
         )
 
+dstore_sizes = {
+    "style_source_neutral":4112371,
+    "style_source_wiki_fine_tune":2157921 
+}
+
+def modify_args(model, args):
+    print(args)
+    args.data = f"data-bin/{model}"
+    args.path = f"checkpoints/{model}/checkpoint_best.pt"
+    args.indexfile = f"checkpoints/{model}/valid_knn.index"
+    args.dstore_size = dstore_sizes[model]
+    args.dstore_filename = f"checkpoints/{model}/valid_dstore"
+
+    return args
 
 def main(args):
     utils.import_user_module(args)
+
+    input_file = global_path + "/survey_data/survey_samples.txt"
+    output_file = global_path + "/survey_data/survey_data.txt"
+
+    styles = ["toxic","formal","informal","polite","impolite","supportive","offensive"]
+    survey_dict_list = []
+
+    survey_models = ["style_source_wiki_fine_tune","style_source_neutral"]
+    args = modify_args(model,args)
 
     if args.buffer_size < 1:
         args.buffer_size = 1
@@ -145,71 +169,80 @@ def main(args):
     logger.info('Type the input sentence and press return:')
     start_id = 0
 
-    styles = ["toxic","formal","informal","polite","impolite","supportive","offensive"]
-    input_file = global_path + "/survey_data/survey_samples.txt"
-
     with open(input_file, "r") as f:
-        survey_samples = f.readlines()
+        survey_samples = f.read().splitlines() 
 
     for inputs in survey_samples:
-        results = []
-        for batch in make_batches(inputs, args, task, max_positions, encode_fn):
-            src_tokens = batch.src_tokens
-            src_lengths = batch.src_lengths
-            if use_cuda:
-                src_tokens = src_tokens.cuda()
-                src_lengths = src_lengths.cuda()
+        print(f"\nInput sample: {inputs}")
+        survey_dict = {}
+        inputs = [inputs]
+        for style in styles:
+            args.style = style
+            results = []
+            for batch in make_batches(inputs, args, task, max_positions, encode_fn):
+                src_tokens = batch.src_tokens
+                src_lengths = batch.src_lengths
+                if use_cuda:
+                    src_tokens = src_tokens.cuda()
+                    src_lengths = src_lengths.cuda()
 
-            sample = {
-                'net_input': {
-                    'src_tokens': src_tokens,
-                    'src_lengths': src_lengths,
-                },
-            }
-            translations = task.inference_step(generator, models, sample, 
-                                               #kwargs
-                                               args=args, knn_dstore=knn_dstore)
+                sample = {
+                    'net_input': {
+                        'src_tokens': src_tokens,
+                        'src_lengths': src_lengths,
+                    },
+                }
+                translations = task.inference_step(generator, models, sample, 
+                                                #kwargs
+                                                args=args, knn_dstore=knn_dstore)
 
-            for i, (id, hypos) in enumerate(zip(batch.ids.tolist(), translations)):
-                src_tokens_i = utils.strip_pad(src_tokens[i], tgt_dict.pad())
-                results.append((start_id + id, src_tokens_i, hypos))
+                for i, (id, hypos) in enumerate(zip(batch.ids.tolist(), translations)):
+                    src_tokens_i = utils.strip_pad(src_tokens[i], tgt_dict.pad())
+                    results.append((start_id + id, src_tokens_i, hypos))
 
-        # sort output to match input order
-        for id, src_tokens, hypos in sorted(results, key=lambda x: x[0]):
-            if src_dict is not None:
-                src_str = src_dict.string(src_tokens, args.remove_bpe)
-                print('S-{}\t{}'.format(id, src_str))
+            # sort output to match input order
+            for id, src_tokens, hypos in sorted(results, key=lambda x: x[0]):
+                if src_dict is not None:
+                    src_str = src_dict.string(src_tokens, args.remove_bpe)
+                    print('S-{}\t{}'.format(id, src_str))
 
-            # Process top predictions
-            for hypo in hypos[:min(len(hypos), args.nbest)]:
-                hypo_tokens, hypo_str, alignment = utils.post_process_prediction(
-                    hypo_tokens=hypo['tokens'].int().cpu(),
-                    src_str=src_str,
-                    alignment=hypo['alignment'],
-                    align_dict=align_dict,
-                    tgt_dict=tgt_dict,
-                    remove_bpe=args.remove_bpe,
-                )
-                hypo_str = decode_fn(hypo_str)
-                score = hypo['score'] / math.log(2)  # convert to base 2
-                print('H-{}\t{}\t{}'.format(id, score, hypo_str))
-                print('P-{}\t{}'.format(
-                    id,
-                    ' '.join(map(
-                        lambda x: '{:.4f}'.format(x),
-                        # convert from base e to base 2
-                        hypo['positional_scores'].div_(math.log(2)).tolist(),
-                    ))
-                ))
-                if args.print_alignment:
-                    alignment_str = " ".join(["{}-{}".format(src, tgt) for src, tgt in alignment])
-                    print('A-{}\t{}'.format(
+                # Process top predictions
+                for hypo in hypos[:min(len(hypos), args.nbest)]:
+                    hypo_tokens, hypo_str, alignment = utils.post_process_prediction(
+                        hypo_tokens=hypo['tokens'].int().cpu(),
+                        src_str=src_str,
+                        alignment=hypo['alignment'],
+                        align_dict=align_dict,
+                        tgt_dict=tgt_dict,
+                        remove_bpe=args.remove_bpe,
+                    )
+                    hypo_str = decode_fn(hypo_str)
+                    score = hypo['score'] / math.log(2)  # convert to base 2
+                    print('H-{}\t{}\t{}'.format(id, score, hypo_str))
+                    print('P-{}\t{}'.format(
                         id,
-                        alignment_str
+                        ' '.join(map(
+                            lambda x: '{:.4f}'.format(x),
+                            # convert from base e to base 2
+                            hypo['positional_scores'].div_(math.log(2)).tolist(),
+                        ))
                     ))
+                    if args.print_alignment:
+                        alignment_str = " ".join(["{}-{}".format(src, tgt) for src, tgt in alignment])
+                        print('A-{}\t{}'.format(
+                            id,
+                            alignment_str
+                        ))
+                    survey_dict["style"] = hypo_str
 
+        survey_dict_list.append(survey_dict)
         # update running id counter
         start_id += len(inputs)
+        survey_df = pd.DataFrame(survey_dict_list)
+    
+    survey_df.to_csv(output_file)
+    
+
 
 
 def cli_main():
