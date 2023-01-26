@@ -281,6 +281,8 @@ def main(args):
         with open(folder + "survey_monkey.txt","w") as f:
 
             for row in survey_df.iterrows():
+                print(row)
+                print(row["input"])
                 for style in styles:
                     f.write(f"Which text is more {style}?\n")
                     f.write(row[style]+"\n")
