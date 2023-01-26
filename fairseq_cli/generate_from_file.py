@@ -72,7 +72,9 @@ survey_models = ["style_source_wiki_fine_tune",
                  #"offensive_dataset"
                  ]
 
-styles = ["toxic","formal","informal","polite","impolite","supportive","offensive"]
+styles = ["toxic","formal","informal","polite","impolite","supportive",
+          #"offensive"
+          ]
 
 def modify_args(model, args):
 
@@ -96,6 +98,7 @@ def main(args):
 
     input_file = global_path + "/survey_data/survey_samples.txt"
     output_file = global_path + "/survey_data/survey_data.txt"
+    output_folder = global_path + "/survey_data/"
 
     survey_dict_list = []
 
@@ -273,6 +276,18 @@ def main(args):
     print("\n")
     print(survey_df)
     survey_df.to_csv(output_file)
+
+    def generate_survey_monkey_input(survey_df, folder):
+        with open(folder + "survey_monkey.txt","w") as f:
+
+            for row in survey_df.iterrows():
+                for style in styles:
+                    f.write(f"Which text is more {style}?\n")
+                    f.write(row[style]+"\n")
+                    f.write(row[style+"_single_model"]+"\n")
+                    f.write("\n")
+
+    generate_survey_monkey_input(survey_df, output_folder)
     
 
 
