@@ -280,7 +280,7 @@ def main(args):
     def generate_survey_monkey_input(survey_df, folder):
         with open(folder + "survey_monkey.txt","w") as f:
 
-            for row in survey_df.iterrows():
+            for index, row in survey_df.iterrows():
                 print(row)
                 print(row["input"])
                 for style in styles:
