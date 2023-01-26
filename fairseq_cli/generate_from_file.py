@@ -68,7 +68,9 @@ dstore_sizes = {
 
 survey_models = ["style_source_wiki_fine_tune",
                  #"style_source_neutral",
-                 "toxic_dataset","formal_dataset","informal_dataset","polite_dataset","impolite_dataset","supportive_dataset","offensive_dataset"]
+                 "toxic_dataset","formal_dataset","informal_dataset","polite_dataset","impolite_dataset","supportive_dataset",
+                 #"offensive_dataset"
+                 ]
 
 styles = ["toxic","formal","informal","polite","impolite","supportive","offensive"]
 
@@ -192,6 +194,7 @@ def main(args):
         for inputs in survey_samples:
             print(f"\nInput sample: {inputs}")
             survey_dict = {}
+            survey_dict["input"] = str(inputs)
             survey_dict["model"] = survey_model
             inputs = [inputs]
 
@@ -264,6 +267,7 @@ def main(args):
             start_id += len(inputs)
             survey_df = pd.DataFrame(survey_dict_list)
     
+    survey_df = survey_df.groupby('input').apply(lambda x: x.apply(lambda y: y.dropna().head(1)))
     survey_df.to_csv(output_file)
     
 
