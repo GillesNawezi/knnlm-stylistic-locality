@@ -270,8 +270,8 @@ def main(args):
             start_id += len(inputs)
             survey_df = pd.DataFrame(survey_dict_list)
     
-    print(survey_df.groupby('input').apply(lambda x: x.apply(lambda y: y.dropna().head(1)))).reset_index()
-    survey_df = survey_df.groupby('input').first()
+    print(survey_df.groupby('input').apply(lambda x: x.apply(lambda y: y.dropna().head(1))))
+    survey_df = survey_df.groupby('input').first().reset_index()
 
     print("\n")
     print(survey_df)
