@@ -199,7 +199,7 @@ def main(args):
             inputs = [inputs]
 
             if survey_model.replace("_dataset","") in styles:
-                style_loop = [False]
+                style_loop = [survey_model.replace("_dataset","_single_model")]
             else: 
                 style_loop = styles
 
