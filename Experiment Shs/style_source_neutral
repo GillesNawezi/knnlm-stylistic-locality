@@ -194,12 +194,12 @@ python generate_from_file.py data-bin/style_source_neutral
 --task language_modeling --path checkpoints/style_source_neutral/checkpoint_best.pt 
 --beam 5
 
-python generate_from_file.py  data-bin/style_source_neutral \
+python generate_from_file.py  placeholder \
 --task language_modeling \
 --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
 --k 1024 --lmbda 0.25 --knn-keytype last_ffn_input \
 --probe 32 --knnlm  --fp16 --knn-sim-func "do_not_recomp_l2" --no-load-keys --move-dstore-to-mem \
---min-len 5
+--min-len 5 --no-repeat-ngram-size 4
 
 
 

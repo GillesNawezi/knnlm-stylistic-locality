@@ -144,7 +144,7 @@ python eval_lm.py data-bin/category_source \
 
 
 CUDA_VISIBLE_DEVICES=3  \
-python tune_locality_weights/tune_locality_weights_style_source_wiki_arch.py
+python tune_locality_weights_style_source_wiki_arch.py
 
 
 # eval valid with valid knn and locality

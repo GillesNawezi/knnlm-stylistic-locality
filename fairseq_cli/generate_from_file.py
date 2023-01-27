@@ -293,14 +293,13 @@ def main(args):
                         "output": row[style],
                         "output_single_style": row[style+"_single_model"]
                     }
+                    questions.append(question_dict)
                     
                     #Survey Monkey
                     f.write(f"Which text is more {style}?\n")
                     f.write(row[style]+"\n")
                     f.write(row[style+"_single_model"]+"\n")
                     f.write("\n")
-
-                questions.append(question_dict)
 
         questions_df = pd.DataFrame(questions)
         questions_df.to_csv(folder + "survey_monkey.csv")
