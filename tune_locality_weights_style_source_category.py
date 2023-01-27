@@ -57,7 +57,7 @@ class WeightedDist(torch.nn.Module):
                  dropout=0.,
                  activation='relu',
                  context_dim=1024,
-                 num_outputs=7, ):
+                 num_outputs=13, ):
         super().__init__()
 
         models = [nn.Linear(context_dim, hidden_units), nn.Dropout(p=dropout)]
@@ -94,7 +94,7 @@ class WeightedDist(torch.nn.Module):
         #locality_indicator = proj_l + 2 * pkg_l
         locality_indicator = proj_l + 2 * pkg_l + 4 * cat_l
         
-        locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=7).permute(2, 0, 1)
+        locality_feat = torch.nn.functional.one_hot(locality_indicator.long(), num_classes=8).permute(2, 0, 1)
 
         params = self.model(context_vec)
 
@@ -124,7 +124,7 @@ sample_ids = np.load(f'saved_tensors/{dataset}/valid_sample_id_cache.npy')
 
 
 # Load Localities
-folder = global_path + "examples/language_model/style_source_dataset/"
+folder = global_path + "examples/language_model/style_source_category_dataset/"
 valid_style_file = folder + "valid.txt.style"
 
 with open(valid_style_file, "r") as f:
@@ -208,14 +208,6 @@ test_cat_locality = torch.from_numpy(test_cat_locality)
 test_index_masks = torch.from_numpy(test_index_masks)
 test_lm_probs = torch.from_numpy(test_lm_probs).float().cuda()
 
-
-print(context_vecs.shape)
-print(dists.shape)
-print(pkg_locality.shape)
-print(proj_locality.shape)
-print(cat_locality.shape)
-print(index_masks.shape)
-
 valid_dataset = TensorDataset(context_vecs, dists, pkg_locality, proj_locality, cat_locality, index_masks)
 
 test_dataset = TensorDataset(test_context_vecs, test_dists, test_pkg_locality, test_proj_locality, test_cat_locality, test_index_masks)
@@ -244,7 +236,8 @@ for i in range(epochs):
                             sample[2],
                             sample[3],
                             sample[4],
-                            sample[5])
+                            sample[5]
+                            )
         loss = torch.mean(-outputs)
         loss.backward()
         optimizer.step()
@@ -257,11 +250,11 @@ for i in range(epochs):
         optimizer.zero_grad()
         num_batches += 1
         test_outputs, ps = model(sample[0],
-                            sample[1],
-                            sample[2],
-                            sample[3],
-                            sample[4],
-                            sample[5])
+                                 sample[1],
+                                 sample[2],
+                                 sample[3],
+                                 sample[4],
+                                 sample[5])
         if torch.is_tensor(val_outputs) == False:
             val_outputs = test_outputs
         else:

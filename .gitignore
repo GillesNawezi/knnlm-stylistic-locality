@@ -153,3 +153,9 @@ fairseq/knnlm_sic.py
 notebooks/
 examples/language_model/style_category_dataset/validtrain.txt
 examples/language_model/style_category_dataset/
+style_data_prepro/create_style_category_dataset_old.py
+tests/test_torch.py
+fairseq_cli/eval_lm _old.py
+fairseq/sequence_generator_sic.py
+style_data_prepro/create_social_media_dataset.py
+style_data_prepro/create_style_source_dataset.py

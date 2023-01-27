@@ -277,19 +277,34 @@ def main(args):
     print(survey_df)
     survey_df.to_csv(output_file)
 
-    def generate_survey_monkey_input(survey_df, folder):
+    def generate_survey_input(survey_df, folder):
         with open(folder + "survey_monkey.txt","w") as f:
-
+            questions=[]
             for index, row in survey_df.iterrows():
                 print(row)
                 print(row["input"])
                 for style in styles:
+
+                    #sosci
+                    question_dict = {
+                        "question":f"Which text is more {style}?",
+                        "original" : row["input"],
+                        "output": row[style],
+                        "output_single_style": row[style+"_single_model"]
+                    }
+                    
+                    #Survey Monkey
                     f.write(f"Which text is more {style}?\n")
                     f.write(row[style]+"\n")
                     f.write(row[style+"_single_model"]+"\n")
                     f.write("\n")
 
-    generate_survey_monkey_input(survey_df, output_folder)
+                questions.append(question_dict)
+
+        questions_df = pd.DataFrame(questions)
+        questions_df.to_csv(folder + "survey_monkey.csv")
+
+    generate_survey_input(survey_df, output_folder)
     
 
 

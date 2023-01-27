@@ -71,11 +71,15 @@ filter = ["[deleted]","[removed]",]
 style_df = style_df[~style_df["text"].isin(filter)]
 
 #Filter unwanted Styles
-filter_style = ["non_toxic","non-toxic","neutral_polite","neutral_offensive"]
+filter_style = ["neutral_polite","neutral_offensive","non-toxic"]
 style_df = style_df[~style_df["style"].isin(filter_style)]
 
+#Keep Style
+#filter_style = ["offensive"]
+#style_df = style_df[style_df["style"].isin(filter_style)]
+
+
 #Get Style source
-positive_styles = ["supportive","polite","formal"]
 
 style_df = style_df.replace(r'\n',' ', regex=True) 
 print(f"Before dropna: {len(style_df)}")
@@ -90,12 +94,21 @@ style_df["text"] = style_df["text"].str.strip('\"').str.replace('\"',' \" ').str
 
 #Downsampling
 """
-no_of_samples = 3000
-styles = style_df["style"].unique().tolist()
+counts = style_df.groupby('style')['style'].count()
+n_samples = counts.min()
+subsets = []
 
 
-sample_df = style_df.groupby("style").sample(n=3000, random_state=1, replace=True).reset_index(drop=True)
+for label in counts.index:
+  subset = style_df[style_df['style'] == label].sample(n_samples)
+  subsets.append(subset)
+
+
+downsampled_df = pd.concat(subsets)
+
+print(downsampled_df["style"].value_counts())
 """
+
 def to_txt(writePath, df):
         with open(writePath, 'a') as f:
                 dfAsString = df.to_string(header=False, index=False)
@@ -103,6 +116,9 @@ def to_txt(writePath, df):
 
 
 def create_input_files(df, dir_name):
+
+        
+
         X_train, X_test, y_train, y_test = train_test_split(df[["text","source"]], df["style"], random_state=0, test_size=0.15, stratify=df["style"])
         X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, random_state=0, test_size=0.15, stratify=y_train)
 
@@ -156,7 +172,7 @@ def create_input_files(df, dir_name):
 
 
 
-dir_name = global_path + "/output/style_source_dataset/"
+dir_name = global_path + "/output/category_source/"
 
 create_input_files(style_df, dir_name)
 print(len(style_df))
@@ -176,6 +192,7 @@ for file in tqdm(files):
                         f.write("\n")
                 
 print("DONE")
+print(style_df)
 """
 style_df["no_of_words"] = style_df["text"].str.split().str.len()
 no_of_tokens = style_df["no_of_words"].sum() 

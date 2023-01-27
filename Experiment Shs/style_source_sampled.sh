@@ -26,14 +26,14 @@ bash prepare-wikitext-103.sh
 cd ../..
 
 ## preprocess
-TEXT=examples/language_model/style_source_dataset
+TEXT=examples/language_model/style_source_sampled_dataset
 python preprocess.py \
     --only-source \
     --srcdict data-bin/wiki_style_comb/dict.txt \
     --trainpref $TEXT/train.txt \
     --validpref $TEXT/valid.txt \
     --testpref $TEXT/test.txt \
-    --destdir data-bin/style_source_wiki_fine_tune \
+    --destdir data-bin/style_source_sampled_dataset \
     --workers 20
 
 
@@ -42,8 +42,8 @@ python preprocess.py \
 
 
 CUDA_VISIBLE_DEVICES=2 python train.py --task language_modeling \
-    data-bin/style_source_wiki_fine_tune \
-    --save-dir checkpoints/style_source_wiki_fine_tune \
+    data-bin/style_source_sampled_dataset \
+    --save-dir checkpoints/style_source_sampled_dataset \
     --arch transformer_lm_wiki103 \
     --max-epoch 300 --max-lr 1.0 --t-mult 2 --lr-period-updates 270000 --lr-scheduler cosine --lr-shrink 0.75 \
     --warmup-updates 16000 --warmup-init-lr 1e-07 --min-lr 1e-09 --optimizer nag --lr 0.0001 --clip-norm 0.1 \
@@ -53,8 +53,8 @@ CUDA_VISIBLE_DEVICES=2 python train.py --task language_modeling \
 
 # Continue Training
 CUDA_VISIBLE_DEVICES=2 python train.py --task language_modeling \
-    data-bin/style_source_wiki_fine_tune \
-    --save-dir checkpoints/style_source_wiki_fine_tune \
+    data-bin/style_source_sampled_dataset \
+    --save-dir checkpoints/style_source_sampled_dataset \
     --arch transformer_lm_wiki103 \
     --max-epoch 500 --max-lr 1.0 --t-mult 2 --lr-period-updates 270000 --lr-scheduler cosine --lr-shrink 0.75 \
     --warmup-updates 16000 --warmup-init-lr 1e-07 --min-lr 1e-09 --optimizer nag --lr 0.0001 --clip-norm 0.1 \
@@ -64,15 +64,15 @@ CUDA_VISIBLE_DEVICES=2 python train.py --task language_modeling \
 
 
 ## eval lm, valid
-python eval_lm.py data-bin/style_source_wiki_fine_tune \
-    --path checkpoints/style_source_wiki_fine_tune/checkpoint_best.pt \
+python eval_lm.py data-bin/style_source_sampled_dataset \
+    --path checkpoints/style_source_sampled_dataset/checkpoint_best.pt \
     --sample-break-mode eos --max-tokens 3072 \
     --softmax-batch 1024 \
     --gen-subset valid
 
 ## eval lm, test
-python eval_lm.py data-bin/style_source_wiki_fine_tune \
-    --path checkpoints/style_source_wiki_fine_tune/checkpoint_best.pt \
+python eval_lm.py data-bin/style_source_sampled_dataset \
+    --path checkpoints/style_source_sampled_dataset/checkpoint_best.pt \
     --sample-break-mode eos --max-tokens 3072 \
     --softmax-batch 1024 \
     --gen-subset test
@@ -80,95 +80,95 @@ python eval_lm.py data-bin/style_source_wiki_fine_tune \
 
 ## store valid
 CUDA_VISIBLE_DEVICES=2  \
-python eval_lm.py data-bin/style_source_wiki_fine_tune \
-    --path checkpoints/style_source_wiki_fine_tune/checkpoint_best.pt \
+python eval_lm.py data-bin/style_source_sampled_dataset \
+    --path checkpoints/style_source_sampled_dataset/checkpoint_best.pt \
     --sample-break-mode eos --max-tokens 3072 \
     --softmax-batch 1024 --gen-subset valid \
     --tokens-per-sample 3072 \
-    --dstore-mmap checkpoints/style_source_wiki_fine_tune/valid_dstore --knn-keytype 'last_ffn_input' \
-    --dstore-size 2157921  --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
+    --dstore-mmap checkpoints/style_source_sampled_dataset/valid_dstore --knn-keytype 'last_ffn_input' \
+    --dstore-size 37871  --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
     --save-knnlm-dstore --fp16
 
 
 ## store test
 CUDA_VISIBLE_DEVICES=2  \
-python eval_lm.py data-bin/style_source_wiki_fine_tune \
-    --path checkpoints/style_source_wiki_fine_tune/checkpoint_best.pt \
+python eval_lm.py data-bin/style_source_sampled_dataset \
+    --path checkpoints/style_source_sampled_dataset/checkpoint_best.pt \
     --sample-break-mode eos --max-tokens 3072 \
     --softmax-batch 1024 --gen-subset test \
     --tokens-per-sample 3072 \
-    --dstore-mmap checkpoints/style_source_wiki_fine_tune/test_dstore --knn-keytype 'last_ffn_input' \
-    --dstore-size 2157921  --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
+    --dstore-mmap checkpoints/style_source_sampled_dataset/test_dstore --knn-keytype 'last_ffn_input' \
+    --dstore-size 37871  --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
     --save-knnlm-dstore --fp16
 
 1865434
 ## build valid index
 python build_dstore.py \
-    --dstore_mmap checkpoints/style_source_wiki_fine_tune/valid_dstore \
-    --dstore_size 2157921 \
-    --faiss_index checkpoints/style_source_wiki_fine_tune/valid_knn.index \
+    --dstore_mmap checkpoints/style_source_sampled_dataset/valid_dstore \
+    --dstore_size 37871 \
+    --faiss_index checkpoints/style_source_sampled_dataset/valid_knn.index \
     --num_keys_to_add_at_a_time 500000 \
     --starting_point 0 --dimension 1024
 
 ## build test index
 python build_dstore.py \
-    --dstore_mmap checkpoints/style_source_wiki_fine_tune/test_dstore \
-    --dstore_size 2157921 \
-    --faiss_index checkpoints/style_source_wiki_fine_tune/test_knn.index \
+    --dstore_mmap checkpoints/style_source_sampled_dataset/test_dstore \
+    --dstore_size 37871 \
+    --faiss_index checkpoints/style_source_sampled_dataset/test_knn.index \
     --num_keys_to_add_at_a_time 500000 \
     --starting_point 0 --dimension 1024
 
 
 # eval valid with valid knn
 CUDA_VISIBLE_DEVICES=2  \
-python eval_lm.py data-bin/style_source_wiki_fine_tune \
-    --path checkpoints/style_source_wiki_fine_tune/checkpoint_best.pt \
+python eval_lm.py data-bin/style_source_sampled_dataset \
+    --path checkpoints/style_source_sampled_dataset/checkpoint_best.pt \
     --sample-break-mode eos --max-tokens 3072 \
     --softmax-batch 1024 \
     --gen-subset valid \
-    --dstore-filename checkpoints/style_source_wiki_fine_tune/valid_dstore \
-    --indexfile checkpoints/style_source_wiki_fine_tune/valid_knn.index  \
+    --dstore-filename checkpoints/style_source_sampled_dataset/valid_dstore \
+    --indexfile checkpoints/style_source_sampled_dataset/valid_knn.index  \
     --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
-    --k 1024 --lmbda 0.25 --dstore-size 2157921 --knn-keytype last_ffn_input \
+    --k 1024 --lmbda 0.25 --dstore-size 37871 --knn-keytype last_ffn_input \
     --probe 32 --knnlm  --fp16 --knn-sim-func "do_not_recomp_l2" --no-load-keys --move-dstore-to-mem \
 
 # eval test with test knn
 CUDA_VISIBLE_DEVICES=2  \
-python eval_lm.py data-bin/style_source_wiki_fine_tune \
-    --path checkpoints/style_source_wiki_fine_tune/checkpoint_best.pt \
+python eval_lm.py data-bin/style_source_sampled_dataset \
+    --path checkpoints/style_source_sampled_dataset/checkpoint_best.pt \
     --sample-break-mode eos --max-tokens 3072 \
     --softmax-batch 1024 \
     --gen-subset test \
-    --dstore-filename checkpoints/style_source_wiki_fine_tune/test_dstore \
-    --indexfile checkpoints/style_source_wiki_fine_tune/test_knn.index  \
+    --dstore-filename checkpoints/style_source_sampled_dataset/test_dstore \
+    --indexfile checkpoints/style_source_sampled_dataset/test_knn.index  \
     --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
-    --k 1024 --lmbda 0.25 --dstore-size 2157921 --knn-keytype last_ffn_input \
+    --k 1024 --lmbda 0.25 --dstore-size 37871 --knn-keytype last_ffn_input \
     --probe 32 --knnlm  --fp16 --knn-sim-func "do_not_recomp_l2" --no-load-keys --move-dstore-to-mem \
 
 # eval valid with valid knn and locality
 CUDA_VISIBLE_DEVICES=2  \
-python eval_lm.py data-bin/style_source_wiki_fine_tune \
-    --path checkpoints/style_source_wiki_fine_tune/checkpoint_best.pt \
+python eval_lm.py data-bin/style_source_sampled_dataset \
+    --path checkpoints/style_source_sampled_dataset/checkpoint_best.pt \
     --sample-break-mode eos --max-tokens 3072 \
     --softmax-batch 1024 \
     --gen-subset valid \
-    --dstore-filename checkpoints/style_source_wiki_fine_tune/valid_dstore \
-    --indexfile checkpoints/style_source_wiki_fine_tune/valid_knn.index  \
+    --dstore-filename checkpoints/style_source_sampled_dataset/valid_dstore \
+    --indexfile checkpoints/style_source_sampled_dataset/valid_knn.index  \
     --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
-    --k 1024 --lmbda 0.25 --dstore-size 2157921 --knn-keytype last_ffn_input \
+    --k 1024 --lmbda 0.25 --dstore-size 37871 --knn-keytype last_ffn_input \
     --probe 32 --knnlm  --fp16 --knn-sim-func "do_not_recomp_l2" --no-load-keys --move-dstore-to-mem \
     --use-locality
 
 # eval test with test knn and locality
-python eval_lm.py data-bin/style_source_wiki_fine_tune \
-    --path checkpoints/style_source_wiki_fine_tune/checkpoint_best.pt \
+python eval_lm.py data-bin/style_source_sampled_dataset \
+    --path checkpoints/style_source_sampled_dataset/checkpoint_best.pt \
     --sample-break-mode eos --max-tokens 3072 \
     --softmax-batch 1024 \
     --gen-subset test \
-    --dstore-filename checkpoints/style_source_wiki_fine_tune/test_dstore \
-    --indexfile checkpoints/style_source_wiki_fine_tune/test_knn.index  \
+    --dstore-filename checkpoints/style_source_sampled_dataset/test_dstore \
+    --indexfile checkpoints/style_source_sampled_dataset/test_knn.index  \
     --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
-    --k 1024 --lmbda 0.25 --dstore-size 2157921 --knn-keytype last_ffn_input \
+    --k 1024 --lmbda 0.25 --dstore-size 37871 --knn-keytype last_ffn_input \
     --probe 32 --knnlm  --fp16 --knn-sim-func "do_not_recomp_l2" --no-load-keys --move-dstore-to-mem \
     --use-locality
 
@@ -179,47 +179,47 @@ python eval_lm.py data-bin/style_source_wiki_fine_tune \
 #Wiki Model + Merged Dict??
 fairseq-interactive data-bin/wikitext-103 \
 --task language_modeling \
---path checkpoints/style_source_wiki_fine_tune/wt103_checkpoint_best.pt \
+--path checkpoints/style_source_sampled_dataset/wt103_checkpoint_best.pt \
 --beam 5
 
 #Wiki Model Fine Tuned with Style Data
-fairseq-interactive data-bin/style_source_wiki_fine_tune \
+fairseq-interactive data-bin/style_source_sampled_dataset \
 --task language_modeling \
---path checkpoints/style_source_wiki_fine_tune/checkpoint_best.pt \
+--path checkpoints/style_source_sampled_dataset/checkpoint_best.pt \
 --beam 5
 
 #With Dstore
-fairseq-interactive data-bin/style_source_wiki_fine_tune \
+fairseq-interactive data-bin/style_source_sampled_dataset \
 --task language_modeling \
---path checkpoints/style_source_wiki_fine_tune/checkpoint_best.pt \
---dstore-filename checkpoints/style_source_wiki_fine_tune/valid_dstore \
---indexfile checkpoints/style_source_wiki_fine_tune/valid_knn.index  \
+--path checkpoints/style_source_sampled_dataset/checkpoint_best.pt \
+--dstore-filename checkpoints/style_source_sampled_dataset/valid_dstore \
+--indexfile checkpoints/style_source_sampled_dataset/valid_knn.index  \
 --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
---k 1024 --lmbda 0.25 --dstore-size 2157921 --knn-keytype last_ffn_input \
+--k 1024 --lmbda 0.25 --dstore-size 37871 --knn-keytype last_ffn_input \
 --probe 32 --knnlm  --fp16 --knn-sim-func "do_not_recomp_l2" --no-load-keys --move-dstore-to-mem 
 
 #With Knn + Style
-fairseq-interactive data-bin/style_source_wiki_fine_tune \
+fairseq-interactive data-bin/style_source_sampled_dataset \
 --task language_modeling \
---path checkpoints/style_source_wiki_fine_tune/checkpoint_best.pt \
---dstore-filename checkpoints/style_source_wiki_fine_tune/valid_dstore \
---indexfile checkpoints/style_source_wiki_fine_tune/valid_knn.index  \
+--path checkpoints/style_source_sampled_dataset/checkpoint_best.pt \
+--dstore-filename checkpoints/style_source_sampled_dataset/valid_dstore \
+--indexfile checkpoints/style_source_sampled_dataset/valid_knn.index  \
 --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
---k 1024 --lmbda 0.25 --dstore-size 2157921 --knn-keytype last_ffn_input \
+--k 1024 --lmbda 0.25 --dstore-size 37871 --knn-keytype last_ffn_input \
 --probe 32 --knnlm  --fp16 --knn-sim-func "do_not_recomp_l2" --no-load-keys --move-dstore-to-mem \
 --use-locality --style toxic
 
 
 #%%
-fairseq-generate data-bin/style_source_wiki_fine_tune \
+fairseq-generate data-bin/style_source_sampled_dataset \
     --task language_modeling \
-    --path checkpoints/style_source_wiki_fine_tune/checkpoint_best.pt \
+    --path checkpoints/style_source_sampled_dataset/checkpoint_best.pt \
     --gen-subset valid
     --beam 5 
 
 
-python generate.py data-bin/style_source_wiki_fine_tune \
-  --path checkpoints/style_source_wiki_fine_tune/checkpoint_best.pt \
+python generate.py data-bin/style_source_sampled_dataset \
+  --path checkpoints/style_source_sampled_dataset/checkpoint_best.pt \
   --beam 5 \
   --batch-size 16 \
   --nbest 5

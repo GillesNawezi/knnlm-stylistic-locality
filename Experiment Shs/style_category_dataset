@@ -8,9 +8,20 @@ pos    147125
 TEXT=examples/language_model/style_category_dataset
 python preprocess.py \
     --only-source \
-    --trainpref $TEXT/valid.txt \
+    --trainpref $TEXT/train.txt \
     --validpref $TEXT/valid.txt \
     --testpref $TEXT/test.txt\
+    --destdir data-bin/style_category_dataset \
+    --workers 20
+
+## preprocess Import Dict
+TEXT=examples/language_model/style_category_dataset
+python preprocess.py \
+    --only-source \
+    --srcdict data-bin/style_source_wiki_fine_tune/dict.txt \
+    --trainpref $TEXT/train.txt \
+    --validpref $TEXT/valid.txt \
+    --testpref $TEXT/test.txt \
     --destdir data-bin/style_category_dataset \
     --workers 20
 
@@ -50,31 +61,30 @@ size 3: 1536984
 ## store valid
 CUDA_VISIBLE_DEVICES=2  \
 python eval_lm.py data-bin/style_category_dataset \
-    --path checkpoints/style_category_dataset/checkpoint11.pt \
+    --path checkpoints/style_category_dataset/checkpoint_best.pt \
     --sample-break-mode eos --max-tokens 3072 \
     --softmax-batch 1024 --gen-subset valid \
     --tokens-per-sample 3072 \
     --dstore-mmap checkpoints/style_category_dataset/valid_dstore --knn-keytype 'last_ffn_input' \
-    --dstore-size 1788958  --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
+    --dstore-size 2157921  --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
     --save-knnlm-dstore --fp16
-
-
 
 ## store test
 CUDA_VISIBLE_DEVICES=2  \
 python eval_lm.py data-bin/style_category_dataset \
-    --path checkpoints/style_category_dataset/checkpoint11.pt \
+    --path checkpoints/style_category_dataset/checkpoint_best.pt \
     --sample-break-mode eos --max-tokens 3072 \
     --softmax-batch 1024 --gen-subset test \
     --tokens-per-sample 3072 \
     --dstore-mmap checkpoints/style_category_dataset/test_dstore --knn-keytype 'last_ffn_input' \
-    --dstore-size 1788958  --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
+    --dstore-size 2157921  --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
     --save-knnlm-dstore --fp16
+
 
 ## build valid index
 python build_dstore.py \
     --dstore_mmap checkpoints/style_category_dataset/valid_dstore \
-    --dstore_size 1788958 \
+    --dstore_size 2157921 \
     --faiss_index checkpoints/style_category_dataset/valid_knn.index \
     --num_keys_to_add_at_a_time 500000 \
     --starting_point 0 --dimension 1024
@@ -82,57 +92,69 @@ python build_dstore.py \
 ## build test index
 python build_dstore.py \
     --dstore_mmap checkpoints/style_category_dataset/test_dstore \
-    --dstore_size 1788958 \
+    --dstore_size 2157921 \
     --faiss_index checkpoints/style_category_dataset/test_knn.index \
     --num_keys_to_add_at_a_time 500000 \
     --starting_point 0 --dimension 1024
 
 
-# Train Adaptive Model Weights
-CUDA_VISIBLE_DEVICES=2  \
-python tune_locality_weights_style_category_adaptive.py
-
 # eval valid with valid knn
+CUDA_VISIBLE_DEVICES=2  \
 python eval_lm.py data-bin/style_category_dataset \
-    --path checkpoints/style_category_dataset/checkpoint11.pt \
+    --path checkpoints/style_category_dataset/checkpoint_best.pt \
     --sample-break-mode eos --max-tokens 3072 \
     --softmax-batch 1024 \
     --gen-subset valid \
     --dstore-filename checkpoints/style_category_dataset/valid_dstore \
     --indexfile checkpoints/style_category_dataset/valid_knn.index  \
     --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
-    --k 1024 --lmbda 0.25 --dstore-size 1788958 --knn-keytype last_ffn_input \
+    --k 1024 --lmbda 0.25 --dstore-size 2157921 --knn-keytype last_ffn_input \
     --probe 32 --knnlm  --fp16 --knn-sim-func "do_not_recomp_l2" --no-load-keys --move-dstore-to-mem \
 
 # eval test with test knn
+CUDA_VISIBLE_DEVICES=2  \
 python eval_lm.py data-bin/style_category_dataset \
-    --path checkpoints/style_category_dataset/checkpoint11.pt \
+    --path checkpoints/style_category_dataset/checkpoint_best.pt \
     --sample-break-mode eos --max-tokens 3072 \
     --softmax-batch 1024 \
     --gen-subset test \
     --dstore-filename checkpoints/style_category_dataset/test_dstore \
     --indexfile checkpoints/style_category_dataset/test_knn.index  \
     --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
-    --k 1024 --lmbda 0.25 --dstore-size 1788958 --knn-keytype last_ffn_input \
+    --k 1024 --lmbda 0.25 --dstore-size 2157921 --knn-keytype last_ffn_input \
     --probe 32 --knnlm  --fp16 --knn-sim-func "do_not_recomp_l2" --no-load-keys --move-dstore-to-mem \
 
+# Train Adaptive Model Weights
+CUDA_VISIBLE_DEVICES=2  \
+python tune_locality_weights_style_category.py
+
+CUDA_VISIBLE_DEVICES=2  \
+python tune_locality_weights_style_wiki_arch.py 
+
 # eval valid with valid knn and locality
+CUDA_VISIBLE_DEVICES=2  \
 python eval_lm.py data-bin/style_category_dataset \
-    --path checkpoints/style_category_dataset/checkpoint11.pt \
+    --path checkpoints/style_category_dataset/checkpoint_best.pt \
     --sample-break-mode eos --max-tokens 3072 \
     --softmax-batch 1024 \
     --gen-subset valid \
     --dstore-filename checkpoints/style_category_dataset/valid_dstore \
     --indexfile checkpoints/style_category_dataset/valid_knn.index  \
     --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
-    --k 1024 --lmbda 0.25 --dstore-size 1788958 --knn-keytype last_ffn_input \
+    --k 1024 --lmbda 0.25 --dstore-size 2157921 --knn-keytype last_ffn_input \
     --probe 32 --knnlm  --fp16 --knn-sim-func "do_not_recomp_l2" --no-load-keys --move-dstore-to-mem \
     --use-locality
 
-
-#Generate Text
-
-fairseq-interactive data-bin/style_category_dataset \
---task language_modeling \
---path checkpoints/style_category_dataset/checkpoint11.pt \
---beam 5
+# eval test with test knn and locality
+CUDA_VISIBLE_DEVICES=2  \
+python eval_lm.py data-bin/style_category_dataset \
+    --path checkpoints/style_category_dataset/checkpoint_best.pt \
+    --sample-break-mode eos --max-tokens 3072 \
+    --softmax-batch 1024 \
+    --gen-subset test \
+    --dstore-filename checkpoints/style_category_dataset/test_dstore \
+    --indexfile checkpoints/style_category_dataset/test_knn.index  \
+    --model-overrides "{'knn_keytype': 'last_ffn_input'}" \
+    --k 1024 --lmbda 0.25 --dstore-size 2157921 --knn-keytype last_ffn_input \
+    --probe 32 --knnlm  --fp16 --knn-sim-func "do_not_recomp_l2" --no-load-keys --move-dstore-to-mem \
+    --use-locality
