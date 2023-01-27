@@ -289,6 +289,7 @@ def main(args):
                     question_dict = {
                         "question":f"Which text is more {style}?",
                         "original" : row["input"],
+                        "style" : style,
                         "output": row[style],
                         "output_single_style": row[style+"_single_model"]
                     }
