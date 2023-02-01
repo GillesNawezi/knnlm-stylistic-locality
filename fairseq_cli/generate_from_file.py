@@ -211,7 +211,7 @@ def main(args):
                 if style == "No style":
                     args.use_locality = False
                     args.style = False
-                elif model.replace("_dataset","") not in styles:
+                elif survey_model.replace("_dataset","") not in styles:
                     args.use_locality = True
                     args.style = style  
                 else:
