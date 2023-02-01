@@ -292,7 +292,7 @@ def main(args):
                 for style in styles:
 
                     #sosci
-                    if style == "No style":
+                    if style != "No style":
                         question_dict = {
                             "question":f"Which text is more {style}?",
                             "original" : row["input"],
@@ -302,7 +302,7 @@ def main(args):
                         }
                     else:
                         question_dict = {
-                            "question":f"Which text is more {style}?",
+                            "question":f"No style sample",
                             "original" : row["input"],
                             "style" : style,
                             "output": row[style],
