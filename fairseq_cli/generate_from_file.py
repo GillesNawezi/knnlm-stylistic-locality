@@ -293,7 +293,10 @@ def main(args):
 
                     #sosci
                     if style != "No style":
+                        print("\n")
                         print(style)
+                        print(row[style])
+                        print(row)
                         question_dict = {
                             "question":f"Which text is more {style}?",
                             "original" : row["input"],
