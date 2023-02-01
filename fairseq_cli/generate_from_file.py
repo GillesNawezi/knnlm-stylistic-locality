@@ -73,6 +73,7 @@ survey_models = ["style_source_wiki_fine_tune",
                  ]
 
 styles = ["toxic","formal","informal","polite","impolite","supportive",
+          #"offensive",
           "No style"
           ]
 
@@ -291,13 +292,23 @@ def main(args):
                 for style in styles:
 
                     #sosci
-                    question_dict = {
-                        "question":f"Which text is more {style}?",
-                        "original" : row["input"],
-                        "style" : style,
-                        "output": row[style],
-                        "output_single_style": row[style+"_single_model"]
-                    }
+                    if style == "No style":
+                        question_dict = {
+                            "question":f"Which text is more {style}?",
+                            "original" : row["input"],
+                            "style" : style,
+                            "output": row[style],
+                            "output_single_style": row[style+"_single_model"]
+                        }
+                    else:
+                        question_dict = {
+                            "question":f"Which text is more {style}?",
+                            "original" : row["input"],
+                            "style" : style,
+                            "output": row[style],
+                            "output_single_style": "None"
+                        }
+
                     questions.append(question_dict)
                     
                     #Survey Monkey
