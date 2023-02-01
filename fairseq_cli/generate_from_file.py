@@ -208,8 +208,8 @@ def main(args):
 
             for style in style_loop:
                 if style == "No style":
-                    args.use_locality = True
-                    args.style = "not_set"
+                    args.use_locality = False
+                    args.style = False
                 else:
                     args.style = style  
 
