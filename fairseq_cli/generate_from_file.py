@@ -73,7 +73,7 @@ survey_models = ["style_source_wiki_fine_tune",
                  ]
 
 styles = ["toxic","formal","informal","polite","impolite","supportive",
-          #"offensive"
+          "No style"
           ]
 
 def modify_args(model, args):
@@ -207,7 +207,12 @@ def main(args):
                 style_loop = styles
 
             for style in style_loop:
-                args.style = style  
+                if style == "No style":
+                    args.use_locality = True
+                    args.style = "not_set"
+                else:
+                    args.style = style  
+
                 results = []
                 for batch in make_batches(inputs, args, task, max_positions, encode_fn):
                     src_tokens = batch.src_tokens
