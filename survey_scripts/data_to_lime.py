@@ -9,10 +9,20 @@ random_state =42
 no_per_style = 5
 
 styles = ["toxic","supportive","formal","informal","polite","impolite"]
+survey_name = "Style and Fluency Survey Test"
 
-file_name = global_path + "/input/survey_monkey.csv"
+out_file_name = global_path + "/output/" + survey_name.lower().replace(" ","_") + ".tsv"
+file_name = global_path + "/input/survey_monkey.csv" 
 question_df = pd.read_csv(file_name)
 
+welcome_text = f"""
+Welcome to this survey! I appreciate your time and willingness to participate in this survey. 
+This survey is part of my Master's thesis on Natural Language Processing. The survey is about your personal assessment and evaluation of example sentences. 
+
+No personal data will be collected. 
+
+<strong>Trigger Warning: The following survey contains extreme and offensive material. Please proceed with caution</strong>.
+"""
 
 
 
@@ -22,6 +32,11 @@ input_file_name = global_path + "/input/limesurvey_survey.txt"
 
 #df = pd.read_table(file_name)
 base_df = pd.read_csv(input_file_name, sep='\t', header=0, lineterminator='\n')
+
+#Metadata
+base_df.loc[base_df.name == "surveyls_title", 'text'] = survey_name
+base_df.loc[base_df.name == "surveyls_welcometext", 'text'] = welcome_text
+base_df.loc[base_df.name == "showgroupinfo", 'text'] = "X"
 
 
 
@@ -126,8 +141,6 @@ output_df = pd.concat([base_df,append_df])
 
 
 
-
-
 # Create Style Rubrik
 
 for style in styles:
@@ -223,8 +236,6 @@ for style in styles:
     output_df = pd.concat([output_df,append_df])
     count +=1
     print(count)
-
-out_file_name = global_path + "/output/limesurvey_survey.tsv"
 
 output_df.to_csv(out_file_name, sep='\t', index=False, float_format='%.0f')
 

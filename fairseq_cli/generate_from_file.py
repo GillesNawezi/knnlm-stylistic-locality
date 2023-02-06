@@ -102,6 +102,8 @@ def main(args):
         input_file = global_path + f"/survey_data/input/survey_samples_{i}.txt"
         output_folder = global_path + "/survey_data/output/"
         output_file = output_folder + f"limedata_{str(i)}.csv"
+        
+        print(input_file)
         i+=1
 
         survey_dict_list = []
