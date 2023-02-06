@@ -102,6 +102,7 @@ def main(args):
         input_file = global_path + f"/survey_data/input/survey_samples_{i}.txt"
         output_folder = global_path + "/survey_data/output/"
         output_file = output_folder + f"limedata_{str(i)}.csv"
+        i+=1
 
         survey_dict_list = []
 
@@ -320,7 +321,7 @@ def main(args):
             questions_df.to_csv(output_file)
 
         generate_survey_input(survey_df, output_file)
-        i+=1
+ 
     
 
 
