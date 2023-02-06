@@ -40,42 +40,52 @@ def sampling_k_elements(group, k=5):
         return group
     return group.sample(k)
 
+df_test != df_test.query("style!='offensive'")
 
-reduced_test = df_test.groupby('style').apply(sampling_k_elements, k=5).reset_index(drop=True)
+i=1
+while (i <= 7):
+    reduced_test = df_test.groupby('style').apply(sampling_k_elements, k=5)
 
-out_dir_name = "/mnt/g/projects/knnlm-stylistic-locality/style_data_prepro/output/survey/"
-out_file = out_dir_name + "survey_samples.txt"
+    print(len(df_test))
+    rem_ix = reduced_test.index.to_frame()[1].tolist()
+    df_test = df_test.drop(index=rem_ix)
+    print(len(df_test))
 
-try:
-    os.remove(out_file)
-except:
-    pass
+    reduced_test = reduced_test.reset_index(drop=True)
+    out_dir_name = "/mnt/g/projects/knnlm-stylistic-locality/style_data_prepro/output/survey/"
+    out_file = out_dir_name + f"survey_samples_{str(i)}.txt"
 
-punc = set(punctuation) - set('.')
-samples = reduced_test["text"].tolist()
+    try:
+        os.remove(out_file)
+    except:
+        pass
 
-with open(out_file, "w+") as f: 
-    for sample in samples:
+    punc = set(punctuation) - set('.')
+    samples = reduced_test["text"].tolist()
 
-
-        newtext = []
-        for k, g in groupby(sample):
-            if k in punc:
-                newtext.append(k)
-            else:
-                newtext.extend(g)
-
-        sample = ''.join(newtext)
-
-        sample = sample.split(" ")
+    with open(out_file, "w+") as f: 
+        for sample in samples:
 
 
-        new_len = int(np.ceil(len(sample) / 2))
+            newtext = []
+            for k, g in groupby(sample):
+                if k in punc:
+                    newtext.append(k)
+                else:
+                    newtext.extend(g)
 
-        sample = " ".join(sample[:new_len])
+            sample = ''.join(newtext)
 
-        f.write(sample)
-        f.write("\n")
+            sample = sample.split(" ")
+
+
+            new_len = int(np.ceil(len(sample) / 2))
+
+            sample = " ".join(sample[:new_len])
+
+            f.write(sample)
+            f.write("\n")
+    i+=1
 
 
 

@@ -27,7 +27,7 @@ base_df = pd.read_csv(input_file_name, sep='\t', header=0, lineterminator='\n')
 
 #Create Stndard Stylized Rubrik
 stand_df = question_df.query(f"style=='No style'").copy()
-stand_df =stand_df.sample(2, random_state=random_state).reset_index(drop=True)
+stand_df =stand_df.sample(no_per_style, random_state=random_state).reset_index(drop=True)
 
 
 group_col = {
