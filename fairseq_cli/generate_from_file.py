@@ -97,14 +97,15 @@ def modify_args(model, args):
 def main(args):
     utils.import_user_module(args)
 
-    i=1
-    while (i <= 7):
-        input_file = global_path + f"/survey_data/input/survey_samples_{i}.txt"
+    counter=1
+    while (counter <= 7):
+        input_file = global_path + f"/survey_data/input/survey_samples_{str(counter)}.txt"
         output_folder = global_path + "/survey_data/output/"
-        output_file = output_folder + f"limedata_{str(i)}.csv"
+        output_file = output_folder + f"limedata_{str(counter)}.csv"
         
+        print("\n\n}")
         print(input_file)
-        i+=1
+        counter = counter+1
 
         survey_dict_list = []
 
@@ -197,6 +198,8 @@ def main(args):
             logger.info('Type the input sentence and press return:')
             start_id = 0
 
+            print("\n\n}")
+            print(input_file)
             with open(input_file, "r") as f:
                 survey_samples = f.read().splitlines() 
 
