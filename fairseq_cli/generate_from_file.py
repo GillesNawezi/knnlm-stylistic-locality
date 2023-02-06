@@ -101,6 +101,7 @@ def main(args):
     while (i <= 7):
         input_file = global_path + f"/survey_data/input/survey_samples_{i}.txt"
         output_folder = global_path + "/survey_data/output/"
+        output_file = output_folder + f"limedata_{str(i)}.csv"
 
         survey_dict_list = []
 
@@ -318,7 +319,6 @@ def main(args):
             questions_df = pd.DataFrame(questions)
             questions_df.to_csv(output_file)
 
-        output_file = output_folder + f"limedata_{str(i)}.csv","w"
         generate_survey_input(survey_df, output_file)
         i+=1
     
