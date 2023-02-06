@@ -99,7 +99,7 @@ def main(args):
 
     i=1
     while (i <= 7):
-        input_file = global_path + f"/survey_data/survey_samples_{i}.txt"
+        input_file = global_path + f"/survey_data/input/survey_samples_{i}.txt"
         output_folder = global_path + "/survey_data/"
 
         survey_dict_list = []
