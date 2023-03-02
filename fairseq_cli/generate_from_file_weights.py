@@ -59,7 +59,7 @@ def make_batches(lines, args, task, max_positions, encode_fn):
             src_tokens=batch['net_input']['src_tokens'], src_lengths=batch['net_input']['src_lengths'],
         )
 
-dstore_sizes = 2157921
+dstore_size = 2157921
 survey_model = "style_source_wiki_fine_tune"
 
 dstore_methods = ["single_style","mixed"]
@@ -71,7 +71,7 @@ def modify_args(model, method ,args):
     args.data = f"data-bin/{model}"
     args.path = f"checkpoints/{model}/checkpoint_best.pt"
     args.indexfile = f"checkpoints/{model}/valid_knn.index"
-    args.dstore_size = dstore_sizes[model]
+    args.dstore_size = dstore_size
     args.dstore_filename = f"checkpoints/{model}/valid_dstore"
 
     args.use_locality = True
