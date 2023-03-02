@@ -162,3 +162,7 @@ style_data_prepro/create_style_source_dataset.py
 survey_scripts/input/survey_monkey.txt
 survey_scripts/output/style_and_fluency_survey_test.tsv
 survey_scripts/input/style_and_fluency_survey_test.tsv
+survey_scripts/survey_results/survey_5.xls
+survey_scripts/input/
+survey_scripts/output/
+survey_scripts/survey_results/

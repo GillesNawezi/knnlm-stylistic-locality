@@ -160,7 +160,7 @@ python tune_locality_weights/tune_locality_weights_style_source_wiki_arch.py
 
 
 # eval valid with valid knn and locality
-CUDA_VISIBLE_DEVICES=2  \
+CUDA_VISIBLE_DEVICES=0  \
 python eval_lm.py data-bin/style_source \
     --path checkpoints/style_source_neutral/checkpoint_best.pt \
     --sample-break-mode eos --max-tokens 3072 \

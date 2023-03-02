@@ -607,9 +607,63 @@ class KNN_Dstore(object):
         new_dists = []
         total_block_count = 0
 
-        dists, knns = self.index.search(queries.detach().cpu().float().numpy(), self.k + redundancy)
+        def load_style_knns(queries, k):
 
-        retrieved_sample_ids = self.inv_token_sample_map[knns]
+            new_k = k 
+            counter=0
+            num_neighbors = [0]
+
+            while min(num_neighbors) <= k and counter <=50:
+
+                print(f"Not enough neighbors found: \n Neighbors: {num_neighbors} \n Loop: {counter} \n k={new_k}")
+
+                dists, knns = self.index.search(queries, new_k)
+                
+                localities = self.load_localities(style=self.args.style, knns=knns, qshape=qshape)
+                package_locality = localities["package_locality"].cpu().detach().numpy()
+                
+                new_knns = []
+                new_dists = []
+                num_neighbors = []
+
+                for i in range(0,5):
+                    
+                    num_neighbor = len(knns[i][package_locality[i] != 0].tolist())
+                    knn = knns[i][package_locality[i] != 0].tolist()
+                    dist = dists[i][package_locality[i] != 0].tolist()
+
+                    #Fill remaining Spots with knns form other styles
+                    knn += knns[i].tolist()
+                    dist += dists[i].tolist()
+
+                    knn = knn[:k]
+                    dist = dist[:k]
+
+                    new_knns.append(knn)
+                    new_dists.append(dist)
+                    num_neighbors.append(num_neighbor)
+
+                
+                knns = np.array(new_knns)
+                dists = np.array(new_dists)
+
+                new_k += 1024
+                counter+=1
+                        
+            retrieved_sample_ids = self.inv_token_sample_map[knns]
+            
+            return dists, knns, retrieved_sample_ids
+
+           
+
+        if self.args.use_locality:
+            if self.args.single_style_dstore == True:
+                dists, knns, retrieved_sample_ids = load_style_knns(queries.detach().cpu().float().numpy(), self.k + redundancy)
+            else:
+                dists, knns = self.index.search(queries.detach().cpu().float().numpy(), self.k + redundancy)
+                retrieved_sample_ids = self.inv_token_sample_map[knns]
+
+
 
         for x, y in zip(knns, dists):
             new_x = x
