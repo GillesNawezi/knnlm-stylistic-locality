@@ -88,7 +88,7 @@ def main(args):
     utils.import_user_module(args)
 
     counter=1
-    while (counter <= 2):
+    while (counter < 2):
         input_file = global_path + f"/survey_data/input/survey_samples_{str(counter)}.txt"
         output_folder = global_path + "/survey_data/output/"
         output_file = output_folder + f"limedata_survey_2_{str(counter)}.csv"
