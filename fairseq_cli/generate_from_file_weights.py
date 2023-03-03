@@ -102,7 +102,13 @@ def main(args):
         for dstore_method in dstore_methods:
 
             logger.info(f"Load New Model: {dstore_method}")
+
+            print("\n\n}")
+            print(dstore_method)
+
             args = modify_args(survey_model, dstore_method, args)
+
+            print(args)
 
             if args.buffer_size < 1:
                 args.buffer_size = 1
