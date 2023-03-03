@@ -615,7 +615,7 @@ class KNN_Dstore(object):
 
             while min(num_neighbors) <= k and counter <=50:
 
-                print(f"Not enough neighbors found: \n Neighbors: {num_neighbors} \n Loop: {counter} \n k={new_k}")
+                #print(f"Not enough neighbors found: \n Neighbors: {num_neighbors} \n Loop: {counter} \n k={new_k}")
 
                 dists, knns = self.index.search(queries, new_k)
                 

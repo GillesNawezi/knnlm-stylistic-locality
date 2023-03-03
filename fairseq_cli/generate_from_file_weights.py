@@ -101,7 +101,7 @@ def main(args):
 
         for dstore_method in dstore_methods:
 
-            logger.info(f"Load New Model: survey_model")
+            logger.info(f"Load New Model: {dstore_method}")
             args = modify_args(survey_model, dstore_method, args)
 
             if args.buffer_size < 1:
@@ -197,23 +197,16 @@ def main(args):
                 print(f"\nInput sample: {inputs}")
                 survey_dict = {}
                 survey_dict["input"] = str(inputs)
-                survey_dict["model"] = survey_model
+                survey_dict["model"] = dstore_method
                 inputs = [inputs]
 
-                if survey_model.replace("_dataset","") in styles:
-                    style_loop = [survey_model.replace("_dataset","_single_model")]
-                else: 
-                    style_loop = styles
+                
+                style_loop = styles
 
                 for style in style_loop:
-                    if style == "No style":
-                        args.use_locality = False
-                        args.style = False
-                    elif survey_model.replace("_dataset","") not in styles:
-                        args.use_locality = True
-                        args.style = style  
-                    else:
-                        args.style = style  
+                    args.use_locality = True
+                    args.style = style  
+
 
                     results = []
                     for batch in make_batches(inputs, args, task, max_positions, encode_fn):
@@ -291,25 +284,12 @@ def main(args):
                 print(row)
                 print(row["input"])
                 for style in styles:
-
-                    #sosci
-                    if style != "No style":
-                        question_dict = {
-                            "question":f"Which text is more {style}?",
-                            "original" : row["input"],
-                            "style" : style,
-                            "output": row[style],
-                            "output_single_style": row[style+"_single_model"]
-                        }
-                    else:
-                        question_dict = {
-                            "question":f"No style sample",
-                            "original" : row["input"],
-                            "style" : style,
-                            "output": row[style],
-                            "output_single_style": "None"
-                        }
-
+                    question_dict = {
+                        "question":f"Which text is more {style}?",
+                        "original" : row["input"],
+                        "style" : style,
+                        "output": row[style],
+                    }
                     questions.append(question_dict)
 
             questions_df = pd.DataFrame(questions)
