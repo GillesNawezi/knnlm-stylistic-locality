@@ -738,7 +738,7 @@ class KNN_Dstore(object):
         3. Proceed as normal
         """
 
-        print(f"Load {style} localities")
+        #print(f"Load {style} localities")
         localities = {}
 
         idx = self.styles_dict[style]
