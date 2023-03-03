@@ -293,7 +293,7 @@ def main(args):
                     questions.append(question_dict)
 
             questions_df = pd.DataFrame(questions)
-            questions_df.to_csv(output_file)
+            #questions_df.to_csv(output_file)
 
         generate_survey_input(survey_df, output_file)
  
