@@ -72,6 +72,10 @@ def main(parsed_args):
     global_path = str(pathlib.Path(__file__).parent.resolve()) + "/../"
     ex_path = parsed_args.path
     ex_path = ex_path.split("/")[-2]
+
+    if ex_path == "style_source_wiki_fine_tune":
+        ex_path = "style_source_dataset"
+        
     folder = global_path + f"examples/language_model/{ex_path}/"
     
     print(folder)
