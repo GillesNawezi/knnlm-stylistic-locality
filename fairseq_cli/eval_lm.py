@@ -351,10 +351,42 @@ def main(parsed_args):
                             is_bpe = False
                             w = ''
                     if args.output_word_probs:
-                        logger.info(
-                            str(int(sample_id)) + " "
-                            + ('\t'.join('{} [{:2f}]'.format(x[0], x[1]) for x in word_prob))
-                        )
+                                     
+                        try:
+                            top100_score
+                        except NameError:
+                            top100_score = 0 
+                            top100_count = 0
+
+                            last100_score = 0 
+                            last100_count = 0
+
+                            #folder = str(pathlib.Path(__file__).parent.resolve()) + "/../../"
+                            with open(global_path + "word_level_analysis/output/top100","r") as f:
+                                top_words = f.readlines()
+                            top_words = [x.replace("\n","") for x in top_words]
+
+                            with open(global_path + "word_level_analysis/output/last100","r") as f:
+                                last_words = f.readlines()
+                            last_words = [x.replace("\n","") for x in last_words]
+
+                        for x in word_prob:
+                            if x[0] in top_words:
+                                print(x[0])
+                                top100_score += x[1]
+                                top100_count +=1
+                            elif x[0] in last_words:
+                                print(x[0])
+                                last100_score += x[1]
+                                last100_count +=1
+
+       
+                            
+                        # logger.info(
+                        #    str(int(sample_id)) + " "
+                        #    + ('\t'.join('{} [{:2f}]'.format(x[0], x[1]) for x in word_prob))
+                        # )
+                        
 
             wps_meter.update(sample['ntokens'])
             t.log({'wps': round(wps_meter.avg)})
@@ -402,6 +434,26 @@ def main(parsed_args):
             avg_nll_loss_source, 2 ** avg_nll_loss_source
         ))
         print("\n")
+
+    print("Top 100 words perfromance")
+    if args.output_word_probs:
+
+        avg_nll_loss_top = -top100_score / top100_count / math.log(2)  # convert to base 2
+        print("\n")
+        print(f"##### Top 100 #####")
+        logger.info('Loss (base 2): {:.4f}, Perplexity: {:.2f}'.format(
+            avg_nll_loss_top, 2 ** avg_nll_loss_top
+        ))
+
+    print("Last 100 words perfromance")
+    if args.output_word_probs:
+
+        avg_nll_loss_last = -last100_score / last100_count / math.log(2)  # convert to base 2
+        print("\n")
+        print(f"##### Last 100 #####")
+        logger.info('Loss (base 2): {:.4f}, Perplexity: {:.2f}'.format(
+            avg_nll_loss_last, 2 ** avg_nll_loss_last
+        ))
 
 
 
@@ -453,9 +505,9 @@ def main(parsed_args):
             np.save('saved_tensors/{}/{}_modified_dist_cache.npy'.format(dir_name, split_name),
                     np.concatenate(knn_dstore.modified_dist_cache))
 
-    if args.output_word_stats:
-        for ws in sorted(word_stats.values(), key=lambda x: x.count, reverse=True):
-            logger.info(ws)
+    #if args.output_word_stats:
+        #for ws in sorted(word_stats.values(), key=lambda x: x.count, reverse=True):
+        #    logger.info(ws)
 
 
 def cli_main():
