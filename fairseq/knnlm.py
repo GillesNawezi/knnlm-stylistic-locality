@@ -335,7 +335,7 @@ class KNN_Dstore(object):
 
         if self.args.use_locality:
             # self.args.single_style_dstore == 
-            single_dstore = True
+            single_dstore = False
             if single_dstore:
                 dists, knns, retrieved_sample_ids = load_style_knns(queries.detach().cpu().float().numpy(), self.k + redundancy)
             else:
