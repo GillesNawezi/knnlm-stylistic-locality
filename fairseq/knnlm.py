@@ -714,12 +714,11 @@ class KNN_Dstore(object):
 
            
 
-        if self.args.use_locality:
-            if self.args.single_style_dstore == True:
-                dists, knns, retrieved_sample_ids = load_style_knns(queries.detach().cpu().float().numpy(), self.k + redundancy)
-            else:
-                dists, knns = self.index.search(queries.detach().cpu().float().numpy(), self.k + redundancy)
-                retrieved_sample_ids = self.inv_token_sample_map[knns]
+        if self.args.use_locality and self.args.single_style_dstore == True:
+            dists, knns, retrieved_sample_ids = load_style_knns(queries.detach().cpu().float().numpy(), self.k + redundancy)
+        else:
+            dists, knns = self.index.search(queries.detach().cpu().float().numpy(), self.k + redundancy)
+            retrieved_sample_ids = self.inv_token_sample_map[knns]
 
 
 
